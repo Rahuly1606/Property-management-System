@@ -1,0 +1,373 @@
+package com.propertymanagement.controller;
+
+import com.propertymanagement.dto.LeaseDTO;
+import com.propertymanagement.mapper.LeaseMapper;
+import com.propertymanagement.model.Lease;
+import com.propertymanagement.model.LeaseStatus;
+import com.propertymanagement.model.User;
+import com.propertymanagement.service.LeaseService;
+import com.propertymanagement.service.UserService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api")
+public class LeaseController {
+
+    @Autowired
+    private LeaseService leaseService;
+
+    @Autowired
+    private UserService userService;
+
+    @Autowired
+    private LeaseMapper leaseMapper;
+
+    // Get all leases (admin)
+    @GetMapping("/leases")
+    @PreAuthorize("hasRole('ADMIN')")
+    public Page<LeaseDTO> getAllLeases(Pageable pageable) {
+        return leaseService.findAll(pageable)
+                .map(leaseMapper::toDTO);
+    }
+
+    // Get leases by property (landlord)
+    @GetMapping("/leases/property/{propertyId}")
+    @PreAuthorize("hasRole('LANDLORD')")
+    public Page<LeaseDTO> getLeasesByProperty(
+            @PathVariable Long propertyId, Pageable pageable) {
+        return leaseService.findByPropertyId(propertyId, pageable)
+                .map(leaseMapper::toDTO);
+    }
+
+    // Get leases for landlord
+    @GetMapping("/landlord/leases")
+    @PreAuthorize("hasRole('LANDLORD')")
+    public Page<LeaseDTO> getLandlordLeases(Pageable pageable) {
+        User currentUser = userService.getCurrentUser();
+        return leaseService.findByLandlord(currentUser, pageable)
+                .map(leaseMapper::toDTO);
+    }
+
+    // Get active lease for tenant
+    @GetMapping("/tenant/lease")
+    @PreAuthorize("hasRole('TENANT')")
+    public ResponseEntity<LeaseDTO> getTenantLease() {
+        User currentUser = userService.getCurrentUser();
+        Lease lease = leaseService.findActiveLease(currentUser);
+        
+        if (lease == null) {
+            return ResponseEntity.notFound().build();
+        }
+        
+        return ResponseEntity.ok(leaseMapper.toDTO(lease));
+    }
+
+    // Get lease by ID
+    @GetMapping("/leases/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'LANDLORD', 'TENANT')")
+    public ResponseEntity<LeaseDTO> getLeaseById(@PathVariable Long id) {
+        Lease lease = leaseService.findById(id);
+        User currentUser = userService.getCurrentUser();
+        
+        if (lease == null) {
+            return ResponseEntity.notFound().build();
+        }
+        
+        // Verify access rights
+        if (!leaseService.canAccess(lease, currentUser)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        
+        return ResponseEntity.ok(leaseMapper.toDTO(lease));
+    }
+
+    // Create a new lease (landlord)
+    @PostMapping("/leases")
+    @PreAuthorize("hasAnyRole('ADMIN', 'LANDLORD')")
+    public ResponseEntity<LeaseDTO> createLease(@RequestBody LeaseDTO leaseDTO) {
+        User currentUser = userService.getCurrentUser();
+        Lease lease = leaseService.createLease(leaseMapper.toEntity(leaseDTO), currentUser);
+        return ResponseEntity.status(HttpStatus.CREATED).body(leaseMapper.toDTO(lease));
+    }
+
+    // Update lease
+    @PutMapping("/leases/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'LANDLORD')")
+    public ResponseEntity<LeaseDTO> updateLease(
+            @PathVariable Long id, @RequestBody LeaseDTO leaseDTO) {
+        User currentUser = userService.getCurrentUser();
+        Lease lease = leaseService.findById(id);
+        
+        if (lease == null) {
+            return ResponseEntity.notFound().build();
+        }
+        
+        // Verify access rights
+        if (!leaseService.canModify(lease, currentUser)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        
+        Lease updatedLease = leaseService.updateLease(id, leaseMapper.toEntity(leaseDTO), currentUser);
+        return ResponseEntity.ok(leaseMapper.toDTO(updatedLease));
+    }
+
+    // Update lease status
+    @PutMapping("/leases/{id}/status")
+    @PreAuthorize("hasAnyRole('ADMIN', 'LANDLORD')")
+    public ResponseEntity<LeaseDTO> updateLeaseStatus(
+            @PathVariable Long id, @RequestBody LeaseStatusUpdateDTO statusUpdate) {
+        User currentUser = userService.getCurrentUser();
+        Lease lease = leaseService.findById(id);
+        
+        if (lease == null) {
+            return ResponseEntity.notFound().build();
+        }
+        
+        // Verify access rights
+        if (!leaseService.canModify(lease, currentUser)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        
+        Lease updatedLease = leaseService.updateLeaseStatus(id, statusUpdate.getStatus(), currentUser);
+        return ResponseEntity.ok(leaseMapper.toDTO(updatedLease));
+    }
+
+    // Terminate lease
+    @PutMapping("/leases/{id}/terminate")
+    @PreAuthorize("hasAnyRole('ADMIN', 'LANDLORD')")
+    public ResponseEntity<LeaseDTO> terminateLease(
+            @PathVariable Long id, @RequestBody LeaseTerminationDTO terminationData) {
+        User currentUser = userService.getCurrentUser();
+        Lease lease = leaseService.findById(id);
+        
+        if (lease == null) {
+            return ResponseEntity.notFound().build();
+        }
+        
+        // Verify access rights
+        if (!leaseService.canModify(lease, currentUser)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        
+        Lease terminatedLease = leaseService.terminateLease(
+                id, terminationData.getTerminationDate(), terminationData.getReason(), currentUser);
+        
+        return ResponseEntity.ok(leaseMapper.toDTO(terminatedLease));
+    }
+
+    // Renew lease
+    @PutMapping("/leases/{id}/renew")
+    @PreAuthorize("hasAnyRole('ADMIN', 'LANDLORD')")
+    public ResponseEntity<LeaseDTO> renewLease(
+            @PathVariable Long id, @RequestBody LeaseRenewalDTO renewalData) {
+        User currentUser = userService.getCurrentUser();
+        Lease lease = leaseService.findById(id);
+        
+        if (lease == null) {
+            return ResponseEntity.notFound().build();
+        }
+        
+        // Verify access rights
+        if (!leaseService.canModify(lease, currentUser)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        
+        Lease renewedLease = leaseService.renewLease(
+                id, renewalData.getStartDate(), renewalData.getEndDate(), 
+                renewalData.getMonthlyRent(), currentUser);
+        
+        return ResponseEntity.ok(leaseMapper.toDTO(renewedLease));
+    }
+
+    // Get lease documents
+    @GetMapping("/leases/{leaseId}/documents")
+    @PreAuthorize("hasAnyRole('ADMIN', 'LANDLORD', 'TENANT')")
+    public ResponseEntity<List<LeaseDocumentDTO>> getLeaseDocuments(@PathVariable Long leaseId) {
+        User currentUser = userService.getCurrentUser();
+        Lease lease = leaseService.findById(leaseId);
+        
+        if (lease == null) {
+            return ResponseEntity.notFound().build();
+        }
+        
+        // Verify access rights
+        if (!leaseService.canAccess(lease, currentUser)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        
+        List<LeaseDocumentDTO> documents = leaseService.getLeaseDocuments(leaseId);
+        return ResponseEntity.ok(documents);
+    }
+
+    // Upload lease document
+    @PostMapping(value = "/leases/{leaseId}/documents", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasAnyRole('ADMIN', 'LANDLORD')")
+    public ResponseEntity<LeaseDocumentDTO> uploadLeaseDocument(
+            @PathVariable Long leaseId,
+            @RequestPart("file") MultipartFile file,
+            @RequestPart("documentType") String documentType) {
+        
+        User currentUser = userService.getCurrentUser();
+        Lease lease = leaseService.findById(leaseId);
+        
+        if (lease == null) {
+            return ResponseEntity.notFound().build();
+        }
+        
+        // Verify access rights
+        if (!leaseService.canModify(lease, currentUser)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        
+        LeaseDocumentDTO document = leaseService.uploadLeaseDocument(leaseId, file, documentType, currentUser);
+        return ResponseEntity.status(HttpStatus.CREATED).body(document);
+    }
+
+    // Get upcoming lease renewals (for landlord dashboard)
+    @GetMapping("/landlord/leases/upcoming-renewals")
+    @PreAuthorize("hasRole('LANDLORD')")
+    public ResponseEntity<List<LeaseDTO>> getUpcomingLeaseRenewals(
+            @RequestParam(defaultValue = "30") int daysThreshold,
+            @RequestParam(defaultValue = "5") int limit) {
+        
+        User currentUser = userService.getCurrentUser();
+        List<Lease> leases = leaseService.findUpcomingRenewals(currentUser, daysThreshold, limit);
+        
+        return ResponseEntity.ok(leaseMapper.toDTOList(leases));
+    }
+
+    // Get expiring leases (for landlord dashboard)
+    @GetMapping("/landlord/leases/expiring")
+    @PreAuthorize("hasRole('LANDLORD')")
+    public ResponseEntity<List<LeaseDTO>> getExpiringLeases(
+            @RequestParam(defaultValue = "30") int daysThreshold,
+            @RequestParam(defaultValue = "5") int limit) {
+        
+        User currentUser = userService.getCurrentUser();
+        List<Lease> leases = leaseService.findExpiringLeases(currentUser, daysThreshold, limit);
+        
+        return ResponseEntity.ok(leaseMapper.toDTOList(leases));
+    }
+    
+    // DTOs for request handling
+    static class LeaseStatusUpdateDTO {
+        private LeaseStatus status;
+        
+        public LeaseStatus getStatus() {
+            return status;
+        }
+        
+        public void setStatus(LeaseStatus status) {
+            this.status = status;
+        }
+    }
+    
+    static class LeaseTerminationDTO {
+        private java.time.LocalDate terminationDate;
+        private String reason;
+        
+        public java.time.LocalDate getTerminationDate() {
+            return terminationDate;
+        }
+        
+        public void setTerminationDate(java.time.LocalDate terminationDate) {
+            this.terminationDate = terminationDate;
+        }
+        
+        public String getReason() {
+            return reason;
+        }
+        
+        public void setReason(String reason) {
+            this.reason = reason;
+        }
+    }
+    
+    static class LeaseRenewalDTO {
+        private java.time.LocalDate startDate;
+        private java.time.LocalDate endDate;
+        private java.math.BigDecimal monthlyRent;
+        
+        public java.time.LocalDate getStartDate() {
+            return startDate;
+        }
+        
+        public void setStartDate(java.time.LocalDate startDate) {
+            this.startDate = startDate;
+        }
+        
+        public java.time.LocalDate getEndDate() {
+            return endDate;
+        }
+        
+        public void setEndDate(java.time.LocalDate endDate) {
+            this.endDate = endDate;
+        }
+        
+        public java.math.BigDecimal getMonthlyRent() {
+            return monthlyRent;
+        }
+        
+        public void setMonthlyRent(java.math.BigDecimal monthlyRent) {
+            this.monthlyRent = monthlyRent;
+        }
+    }
+    
+    static class LeaseDocumentDTO {
+        private Long id;
+        private String fileName;
+        private String documentType;
+        private String url;
+        private java.time.LocalDateTime uploadedAt;
+        
+        public Long getId() {
+            return id;
+        }
+        
+        public void setId(Long id) {
+            this.id = id;
+        }
+        
+        public String getFileName() {
+            return fileName;
+        }
+        
+        public void setFileName(String fileName) {
+            this.fileName = fileName;
+        }
+        
+        public String getDocumentType() {
+            return documentType;
+        }
+        
+        public void setDocumentType(String documentType) {
+            this.documentType = documentType;
+        }
+        
+        public String getUrl() {
+            return url;
+        }
+        
+        public void setUrl(String url) {
+            this.url = url;
+        }
+        
+        public java.time.LocalDateTime getUploadedAt() {
+            return uploadedAt;
+        }
+        
+        public void setUploadedAt(java.time.LocalDateTime uploadedAt) {
+            this.uploadedAt = uploadedAt;
+        }
+    }
+} 
