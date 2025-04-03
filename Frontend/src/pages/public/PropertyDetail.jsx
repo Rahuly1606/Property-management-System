@@ -4,9 +4,9 @@ import { FaBed, FaBath, FaRulerCombined, FaMapMarkerAlt, FaCalendarAlt, FaCheckC
 import axios from '../../utils/api';
 import Button from '../../components/common/Button';
 import Modal from '../../components/common/Modal';
-import { useAuth } from '../../hooks/useAuth';
+import { useAuth } from '../../contexts/AuthContext';
 import { toast } from 'react-toastify';
-import { getPropertyById } from '../../services/propertyService';
+import propertyService from '../../services/propertyService';
 
 const PropertyDetail = () => {
   const { id } = useParams();
@@ -34,8 +34,8 @@ const PropertyDetail = () => {
       setIsLoading(true);
       setError(null);
       
-      const response = await getPropertyById(id);
-      setProperty(response.data);
+      const response = await propertyService.getPropertyById(id);
+      setProperty(response);
     } catch (error) {
       console.error('Error fetching property details:', error);
       setError('Failed to load property details. Please try again later.');

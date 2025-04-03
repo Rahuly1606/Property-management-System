@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { FaUsers, FaBuilding, FaMoneyBillWave, FaTools, FaUserCog } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
 import axios from '../../utils/api';
-import { useAuth } from '../../hooks/useAuth';
+import { useAuth } from '../../contexts/AuthContext';
 import Card from '../../components/common/Card';
 
 const AdminDashboard = () => {

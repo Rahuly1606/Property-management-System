@@ -28,6 +28,8 @@ public class JwtResponse {
     
     private String profileImage;
     
+    private String address;
+    
     // Explicit getters and setters to avoid Lombok issues
     
     public String getToken() {
@@ -92,5 +94,13 @@ public class JwtResponse {
     
     public void setProfileImage(String profileImage) {
         this.profileImage = profileImage;
+    }
+    
+    public String getAddress() {
+        return address;
+    }
+    
+    public void setAddress(String address) {
+        this.address = address;
     }
 } 

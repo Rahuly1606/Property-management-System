@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Outlet, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { FaHome, FaBuilding, FaUser, FaBars, FaTimes, FaSignOutAlt, FaInbox, FaBell } from 'react-icons/fa';
+import { FaHome, FaBuilding, FaUser, FaBars, FaTimes, FaSignOutAlt, FaInbox, FaBell, FaList, FaPlus, FaSearch } from 'react-icons/fa';
 import './Layout.css';
 
 const Layout = () => {
@@ -22,12 +22,25 @@ const Layout = () => {
     }
   };
 
+  // Get user's full name
+  const getUserFullName = () => {
+    if (!currentUser) return '';
+    
+    if (currentUser.firstName && currentUser.lastName) {
+      return `${currentUser.firstName} ${currentUser.lastName}`;
+    } else if (currentUser.firstName) {
+      return currentUser.firstName;
+    } else {
+      return currentUser.email || 'User';
+    }
+  };
+
   // Define navigation links based on user role
   const getNavLinks = () => {
     if (!currentUser) {
       return [
         { to: '/', icon: <FaHome />, text: 'Home' },
-        { to: '/properties', icon: <FaBuilding />, text: 'Properties' },
+        { to: '/properties', icon: <FaBuilding />, text: 'Available Properties' },
         { to: '/login', icon: <FaUser />, text: 'Login' },
         { to: '/register', icon: <FaUser />, text: 'Register' }
       ];
@@ -43,8 +56,9 @@ const Layout = () => {
       ],
       LANDLORD: [
         { to: '/landlord/dashboard', icon: <FaHome />, text: 'Dashboard' },
-        { to: '/landlord/properties', icon: <FaBuilding />, text: 'Properties' },
-        { to: '/landlord/leases', icon: <FaBuilding />, text: 'Leases' },
+        { to: '/landlord/properties', icon: <FaBuilding />, text: 'Manage Properties' },
+        { to: '/landlord/properties/add', icon: <FaPlus />, text: 'Add Property' },
+        { to: '/landlord/leases', icon: <FaList />, text: 'Leases' },
         { to: '/landlord/payments', icon: <FaBuilding />, text: 'Payments' },
         { to: '/landlord/maintenance', icon: <FaBuilding />, text: 'Maintenance' },
         { to: '/landlord/tenants', icon: <FaUser />, text: 'Tenants' },
@@ -52,7 +66,8 @@ const Layout = () => {
       ],
       TENANT: [
         { to: '/tenant/dashboard', icon: <FaHome />, text: 'Dashboard' },
-        { to: '/tenant/lease', icon: <FaBuilding />, text: 'My Lease' },
+        { to: '/tenant/browse-properties', icon: <FaSearch />, text: 'Browse Properties' },
+        { to: '/tenant/lease', icon: <FaList />, text: 'My Lease' },
         { to: '/tenant/payments', icon: <FaBuilding />, text: 'Payments' },
         { to: '/tenant/maintenance', icon: <FaBuilding />, text: 'Maintenance' },
         { to: '/tenant/settings', icon: <FaUser />, text: 'Settings' }
@@ -90,7 +105,7 @@ const Layout = () => {
                 <FaBell />
               </Link>
               <div className="user-profile">
-                <span>{currentUser.name || currentUser.email}</span>
+                <Link to="/profile" className="profile-link">{getUserFullName()}</Link>
                 <button onClick={handleLogout} className="logout-button">
                   <FaSignOutAlt />
                 </button>

@@ -15,8 +15,11 @@ import {
   FormLabel,
   RadioGroup,
   FormControlLabel,
-  Radio
+  Radio,
+  IconButton,
+  InputAdornment
 } from '@mui/material';
+import { Visibility, VisibilityOff } from '@mui/icons-material';
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -31,6 +34,8 @@ const Register = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -39,6 +44,14 @@ const Register = () => {
       ...prevData,
       [name]: value
     }));
+  };
+
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
+  };
+
+  const toggleConfirmPasswordVisibility = () => {
+    setShowConfirmPassword(!showConfirmPassword);
   };
 
   const validateForm = () => {
@@ -70,14 +83,56 @@ const Register = () => {
       // Remove confirmPassword before sending to API
       const { confirmPassword, ...registrationData } = formData;
       
-      await authService.register(registrationData);
-      setSuccess('Registration successful! You can now log in.');
+      console.log("Sending registration data:", registrationData);
       
-      // Redirect to login after a short delay
-      setTimeout(() => navigate('/login'), 2000);
+      const response = await authService.register(registrationData);
+      console.log("Registration response:", response);
+      
+      // Store token and user info
+      if (response.data && response.data.token) {
+        localStorage.setItem('token', response.data.token);
+        localStorage.setItem('user', JSON.stringify({
+          id: response.data.id,
+          email: response.data.email,
+          firstName: response.data.firstName,
+          lastName: response.data.lastName,
+          role: response.data.role
+        }));
+        
+        setSuccess('Registration successful!');
+        
+        // Redirect based on user role
+        setTimeout(() => {
+          if (formData.role === 'LANDLORD') {
+            navigate('/landlord/dashboard');
+          } else {
+            navigate('/tenant/dashboard');
+          }
+        }, 1000);
+      } else if (response.data) {
+        // If registration succeeded but no token received
+        setSuccess('Registration successful! Please login with your credentials.');
+        
+        // Try automatic login
+        try {
+          await authService.login(formData.email, formData.password);
+          const user = authService.getCurrentUser();
+          
+          if (user && user.role === 'LANDLORD') {
+            navigate('/landlord/dashboard');
+          } else {
+            navigate('/tenant/dashboard');
+          }
+        } catch (loginError) {
+          console.error("Auto-login failed:", loginError);
+          setTimeout(() => navigate('/login'), 2000);
+        }
+      }
     } catch (err) {
+      console.error("Registration error:", err);
       setError(
         err.response?.data?.message || 
+        err.message ||
         'Registration failed. Please try again later.'
       );
     } finally {
@@ -152,12 +207,25 @@ const Register = () => {
                   fullWidth
                   name="password"
                   label="Password"
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   id="password"
                   autoComplete="new-password"
                   value={formData.password}
                   onChange={handleChange}
                   helperText="Password must be at least 8 characters long"
+                  InputProps={{
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton
+                          aria-label="toggle password visibility"
+                          onClick={togglePasswordVisibility}
+                          edge="end"
+                        >
+                          {showPassword ? <VisibilityOff /> : <Visibility />}
+                        </IconButton>
+                      </InputAdornment>
+                    )
+                  }}
                 />
               </Grid>
               <Grid item xs={12}>
@@ -166,10 +234,23 @@ const Register = () => {
                   fullWidth
                   name="confirmPassword"
                   label="Confirm Password"
-                  type="password"
+                  type={showConfirmPassword ? "text" : "password"}
                   id="confirmPassword"
                   value={formData.confirmPassword}
                   onChange={handleChange}
+                  InputProps={{
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton
+                          aria-label="toggle password visibility"
+                          onClick={toggleConfirmPasswordVisibility}
+                          edge="end"
+                        >
+                          {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
+                        </IconButton>
+                      </InputAdornment>
+                    )
+                  }}
                 />
               </Grid>
               <Grid item xs={12}>

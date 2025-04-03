@@ -19,6 +19,10 @@ public class PropertyDTO extends BaseDTO {
     
     private String address;
     
+    private String city;
+    
+    private String state;
+    
     private PropertyType propertyType;
     
     private Double totalArea;
@@ -69,6 +73,22 @@ public class PropertyDTO extends BaseDTO {
     
     public void setAddress(String address) {
         this.address = address;
+    }
+    
+    public String getCity() {
+        return city;
+    }
+    
+    public void setCity(String city) {
+        this.city = city;
+    }
+    
+    public String getState() {
+        return state;
+    }
+    
+    public void setState(String state) {
+        this.state = state;
     }
     
     public PropertyType getPropertyType() {

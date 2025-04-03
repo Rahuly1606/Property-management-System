@@ -1,5 +1,12 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import { login as loginService, register as registerService, logout as logoutService, getCurrentUser, isAuthenticated, updateProfile } from '../services/authService';
+import authService, { 
+  login as loginService, 
+  register as registerService, 
+  logout as logoutService, 
+  getCurrentUser, 
+  isAuthenticated, 
+  updateProfile 
+} from '../services/authService';
 
 const AuthContext = createContext();
 
@@ -24,6 +31,7 @@ export const AuthProvider = ({ children }) => {
           if (userData) {
             setCurrentUser(userData);
             setUserRole(userData.role);
+            localStorage.setItem('userRole', userData.role); // Make sure role is available in localStorage
           }
         }
       } catch (error) {
@@ -44,67 +52,75 @@ export const AuthProvider = ({ children }) => {
       setError('');
       
       // For development mode, allow test user logins without API
-      if (process.env.NODE_ENV === 'development') {
-        if (email === 'admin@example.com' && password === 'password') {
-          const userData = { 
-            id: '1', 
-            firstName: 'Admin',
-            lastName: 'User', 
-            email: 'admin@example.com', 
-            role: 'ADMIN' 
-          };
-          localStorage.setItem('token', 'mock-jwt-token-for-admin');
-          localStorage.setItem('userData', JSON.stringify(userData));
-          setCurrentUser(userData);
-          setUserRole('ADMIN');
-          return { success: true };
-        } else if (email === 'landlord@example.com' && password === 'password') {
-          const userData = { 
-            id: '2', 
-            firstName: 'Landlord',
-            lastName: 'User', 
-            email: 'landlord@example.com', 
-            role: 'LANDLORD' 
-          };
-          localStorage.setItem('token', 'mock-jwt-token-for-landlord');
-          localStorage.setItem('userData', JSON.stringify(userData));
-          setCurrentUser(userData);
-          setUserRole('LANDLORD');
-          return { success: true };
-        } else if (email === 'tenant@example.com' && password === 'password') {
-          const userData = { 
-            id: '3', 
-            firstName: 'Tenant',
-            lastName: 'User', 
-            email: 'tenant@example.com', 
-            role: 'TENANT' 
-          };
-          localStorage.setItem('token', 'mock-jwt-token-for-tenant');
-          localStorage.setItem('userData', JSON.stringify(userData));
-          setCurrentUser(userData);
-          setUserRole('TENANT');
-          return { success: true };
+      const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      if (isDevelopment && (
+          email === 'admin@example.com' || 
+          email === 'landlord@example.com' || 
+          email === 'tenant@example.com') && 
+          password === 'password') {
+        
+        let role = 'TENANT';
+        let firstName = 'User';
+        let lastName = 'Test';
+        let id = '0';
+        
+        if (email === 'admin@example.com') {
+          role = 'ADMIN';
+          firstName = 'Admin';
+          id = '1';
+        } else if (email === 'landlord@example.com') {
+          role = 'LANDLORD';
+          firstName = 'Landlord';
+          id = '2';
+        } else {
+          role = 'TENANT';
+          firstName = 'Tenant';
+          id = '3';
         }
+        
+        const userData = { 
+          id, 
+          firstName,
+          lastName, 
+          email,
+          role
+        };
+        
+        localStorage.setItem('token', `mock-jwt-token-for-${role.toLowerCase()}`);
+        localStorage.setItem('user', JSON.stringify(userData));
+        localStorage.setItem('userRole', role);
+        
+        setCurrentUser(userData);
+        setUserRole(role);
+        
+        return { success: true, userData };
       }
       
       // Use the login service for real API call
       try {
-        const response = await loginService({ email, password });
+        const response = await loginService(email, password);
         
-        if (response.data) {
+        if (response && response.token) {
+          // Get user data from response or localStorage
           const userData = getCurrentUser();
-          setCurrentUser(userData);
-          setUserRole(userData.role);
-          return { success: true };
+          
+          if (userData) {
+            // Make sure user role is set in localStorage
+            localStorage.setItem('userRole', userData.role);
+            
+            setCurrentUser(userData);
+            setUserRole(userData.role);
+            return { success: true, userData };
+          }
         }
+        
+        setError('Login failed: Invalid response from server');
+        return { success: false, error: 'Invalid response from server' };
       } catch (apiError) {
         console.error('Login API error:', apiError);
         setError(apiError.response?.data?.message || 'Invalid email or password');
         return { success: false, error: apiError.response?.data?.message || 'Invalid email or password' };
       }
-      
-      setError('Invalid email or password');
-      return { success: false, error: 'Invalid email or password' };
     } catch (error) {
       console.error('Login error:', error);
       setError(error.message || 'Failed to log in');
@@ -121,7 +137,8 @@ export const AuthProvider = ({ children }) => {
       setError('');
       
       // For development mode, allow test registration without API
-      if (process.env.NODE_ENV === 'development') {
+      const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      if (isDevelopment && localStorage.getItem('MOCK_API') === 'true') {
         await new Promise(resolve => setTimeout(resolve, 500)); // Simulate network delay
         
         const newUser = { 
@@ -132,12 +149,14 @@ export const AuthProvider = ({ children }) => {
           role: userData.role || 'TENANT' // Default to tenant role if not specified
         };
         
-        localStorage.setItem('token', 'mock-jwt-token-for-new-user');
-        localStorage.setItem('userData', JSON.stringify(newUser));
+        localStorage.setItem('token', `mock-jwt-token-for-${newUser.role.toLowerCase()}`);
+        localStorage.setItem('user', JSON.stringify(newUser));
+        localStorage.setItem('userRole', newUser.role);
+        
         setCurrentUser(newUser);
         setUserRole(newUser.role);
         
-        return { success: true };
+        return { success: true, userData: newUser };
       }
       
       // Use the register service for real API call
@@ -145,19 +164,37 @@ export const AuthProvider = ({ children }) => {
         const response = await registerService(userData);
         
         if (response.data) {
-          const userData = getCurrentUser();
-          setCurrentUser(userData);
-          setUserRole(userData.role);
-          return { success: true };
+          // Store user data in localStorage if not already done by service
+          if (response.data.token && !localStorage.getItem('token')) {
+            localStorage.setItem('token', response.data.token);
+          }
+          
+          // Create user object from response
+          const user = {
+            id: response.data.id,
+            firstName: response.data.firstName,
+            lastName: response.data.lastName,
+            email: response.data.email,
+            role: response.data.role
+          };
+          
+          // Store in localStorage
+          localStorage.setItem('user', JSON.stringify(user));
+          localStorage.setItem('userRole', user.role);
+          
+          setCurrentUser(user);
+          setUserRole(user.role);
+          
+          return { success: true, userData: user };
         }
+        
+        setError('Registration failed: Invalid response from server');
+        return { success: false, error: 'Invalid response from server' };
       } catch (apiError) {
         console.error('Registration API error:', apiError);
         setError(apiError.response?.data?.message || 'Registration failed');
         return { success: false, error: apiError.response?.data?.message || 'Registration failed' };
       }
-      
-      setError('Registration failed');
-      return { success: false, error: 'Registration failed' };
     } catch (error) {
       console.error('Registration error:', error);
       setError(error.message || 'Failed to register');
@@ -174,7 +211,11 @@ export const AuthProvider = ({ children }) => {
       
       await logoutService();
       
-      // Clear state
+      // Clear state and localStorage
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      localStorage.removeItem('userRole');
+      
       setCurrentUser(null);
       setUserRole(null);
       setError('');
@@ -189,44 +230,74 @@ export const AuthProvider = ({ children }) => {
   };
 
   // Update user profile
-  const updateProfile = async (userData) => {
+  const updateUserProfile = async (userData) => {
+    console.log("AuthContext.updateUserProfile called with:", {
+      ...userData,
+      profileImage: userData.profileImage ? 
+        (userData.profileImage === '' ? 'REMOVING_IMAGE' : `IMAGE_DATA (${Math.round(userData.profileImage.length / 1024)}KB)`) 
+        : undefined
+    });
+    
     try {
       setLoading(true);
       setError('');
       
       // For development mode, allow test profile update without API
-      if (process.env.NODE_ENV === 'development') {
+      const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      if (isDevelopment && localStorage.getItem('MOCK_API') === 'true') {
         await new Promise(resolve => setTimeout(resolve, 500)); // Simulate network delay
         
         // Update local user data
         const updatedUser = { ...currentUser, ...userData };
-        localStorage.setItem('userData', JSON.stringify(updatedUser));
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+        
+        if (userData.role && userData.role !== userRole) {
+          setUserRole(userData.role);
+          localStorage.setItem('userRole', userData.role);
+        }
+        
         setCurrentUser(updatedUser);
-        
-        if (userData.role) {
-          setUserRole(userData.role);
-        }
-        
-        return { success: true };
+        console.log("Profile updated successfully (mock mode)");
+        return { success: true, userData: updatedUser };
       }
       
-      // Use the auth service for real API call
-      const response = await updateProfile(userData);
-      
-      if (response.data) {
-        const userData = getCurrentUser();
-        setCurrentUser(userData);
-        if (userData.role) {
-          setUserRole(userData.role);
+      // Use the update profile service for real API call
+      try {
+        console.log("Calling updateProfile API...");
+        const result = await updateProfile(userData);
+        console.log("API call result:", result);
+        
+        if (result.success) {
+          // Get the updated user data
+          const updatedUser = getCurrentUser();
+          console.log("Updated user data:", {
+            ...updatedUser,
+            profileImage: updatedUser.profileImage ? 'IMAGE_URL_PRESENT' : 'NO_IMAGE'
+          });
+          
+          setCurrentUser(updatedUser);
+          
+          if (updatedUser.role && updatedUser.role !== userRole) {
+            setUserRole(updatedUser.role);
+            localStorage.setItem('userRole', updatedUser.role);
+          }
+          
+          return { success: true, userData: updatedUser };
+        } else {
+          console.error("Profile update failed with error:", result.error);
+          setError(result.error || 'Failed to update profile');
+          return { success: false, error: result.error || 'Failed to update profile' };
         }
-        return { success: true };
+      } catch (apiError) {
+        console.error('Profile update API error:', apiError);
+        const errorMessage = apiError.response?.data?.message || 'Failed to update profile';
+        setError(errorMessage);
+        return { success: false, error: errorMessage };
       }
-      
-      return { success: false, error: 'Failed to update profile' };
     } catch (error) {
       console.error('Profile update error:', error);
-      setError(error.message || 'Failed to update profile');
-      return { success: false, error: error.message || 'Failed to update profile' };
+      setError(error.message || 'An unexpected error occurred');
+      return { success: false, error: error.message || 'An unexpected error occurred' };
     } finally {
       setLoading(false);
     }
@@ -234,15 +305,30 @@ export const AuthProvider = ({ children }) => {
 
   // Check if user has required role
   const hasRole = (requiredRole) => {
-    if (!currentUser) return false;
-    
-    if (Array.isArray(requiredRole)) {
-      return requiredRole.includes(userRole);
-    }
-    
+    if (!userRole) return false;
     return userRole === requiredRole;
   };
-  
+
+  // Check if user is a landlord
+  const isLandlord = () => {
+    return hasRole('LANDLORD');
+  };
+
+  // Check if user is a tenant
+  const isTenant = () => {
+    return hasRole('TENANT');
+  };
+
+  // Check if user is an admin
+  const isAdmin = () => {
+    return hasRole('ADMIN');
+  };
+
+  // Check if user is authenticated
+  const checkAuthenticated = () => {
+    return isAuthenticated() && !!currentUser;
+  };
+
   const value = {
     currentUser,
     userRole,
@@ -251,8 +337,12 @@ export const AuthProvider = ({ children }) => {
     login,
     register,
     logout,
-    updateProfile,
+    updateUserProfile,
     hasRole,
+    isLandlord,
+    isTenant,
+    isAdmin,
+    isAuthenticated: checkAuthenticated
   };
 
   return (

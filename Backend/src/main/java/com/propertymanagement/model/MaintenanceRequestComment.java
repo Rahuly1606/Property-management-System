@@ -43,4 +43,61 @@ public class MaintenanceRequestComment {
     
     @Column(nullable = false)
     private boolean isInternal;
+    
+    // Explicit getters and setters to ensure availability
+    public Long getId() {
+        return id;
+    }
+    
+    public void setId(Long id) {
+        this.id = id;
+    }
+    
+    public MaintenanceRequest getMaintenanceRequest() {
+        return maintenanceRequest;
+    }
+    
+    public void setMaintenanceRequest(MaintenanceRequest maintenanceRequest) {
+        this.maintenanceRequest = maintenanceRequest;
+    }
+    
+    public User getUser() {
+        return user;
+    }
+    
+    public void setUser(User user) {
+        this.user = user;
+    }
+    
+    public String getContent() {
+        return content;
+    }
+    
+    public void setContent(String content) {
+        this.content = content;
+    }
+    
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+    
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+    
+    public List<String> getImages() {
+        return images;
+    }
+    
+    public void setImages(List<String> images) {
+        this.images = images;
+    }
+    
+    public boolean isInternal() {
+        return isInternal;
+    }
+    
+    public void setInternal(boolean internal) {
+        isInternal = internal;
+    }
 } 

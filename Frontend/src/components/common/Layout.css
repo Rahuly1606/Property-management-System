@@ -66,6 +66,18 @@
   gap: 0.75rem;
 }
 
+.profile-link {
+  color: white;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+
+.profile-link:hover {
+  color: #48bb78;
+  text-decoration: underline;
+}
+
 .logout-button {
   background: none;
   border: none;

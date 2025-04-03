@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { FaSearch, FaBed, FaBath, FaRulerCombined, FaMapMarkerAlt, FaFilter } from 'react-icons/fa';
 import Card from '../../components/common/Card';
 import Button from '../../components/common/Button';
-import { getAvailableProperties, searchProperties } from '../../services/propertyService';
+import propertyService from '../../services/propertyService';
 
 const PropertyListing = () => {
   const [properties, setProperties] = useState([]);
@@ -36,22 +36,27 @@ const PropertyListing = () => {
       
       // If we have filters applied, use the search endpoint
       if (hasActiveFilters()) {
-        const searchFilters = {
+        const searchParams = {
+          page: currentPage,
+          size: 10,
           propertyType: filters.propertyType || null,
-          maxRent: filters.priceMax ? parseFloat(filters.priceMax) : null,
+          maxPrice: filters.priceMax ? parseFloat(filters.priceMax) : null,
           minBedrooms: filters.bedrooms ? parseInt(filters.bedrooms) : null
         };
         
-        const response = await searchProperties(searchFilters, currentPage, 10);
-        setProperties(response.data.content);
-        setFilteredProperties(response.data.content);
-        setTotalPages(response.data.totalPages);
+        const response = await propertyService.searchProperties(searchParams);
+        setProperties(response.content || []);
+        setFilteredProperties(response.content || []);
+        setTotalPages(response.totalPages || 0);
       } else {
         // Otherwise just get available properties
-        const response = await getAvailableProperties(currentPage, 10);
-        setProperties(response.data.content);
-        setFilteredProperties(response.data.content);
-        setTotalPages(response.data.totalPages);
+        const response = await propertyService.getAllAvailableProperties({
+          page: currentPage,
+          size: 10
+        });
+        setProperties(response.content || []);
+        setFilteredProperties(response.content || []);
+        setTotalPages(response.totalPages || 0);
       }
     } catch (error) {
       console.error('Error fetching properties:', error);

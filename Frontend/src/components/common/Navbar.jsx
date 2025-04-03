@@ -1,16 +1,20 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { FaUserCircle, FaBars, FaSignOutAlt, FaHome, FaBuilding, FaMoneyBillWave, FaTools, FaEnvelope } from 'react-icons/fa';
-import { useAuth } from '../../hooks/useAuth';
+import { useAuth } from '../../contexts/AuthContext';
+import { FaUser, FaSignOutAlt, FaHome, FaBars, FaTimes, FaUserCog, FaBuilding, FaClipboardList, FaUsers, FaEnvelope, FaDollarSign } from 'react-icons/fa';
 
 const Navbar = () => {
-  const { user, logout } = useAuth();
+  const { currentUser, isAuthenticated, logout } = useAuth();
   const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/login');
+    } catch (error) {
+      console.error('Error logging out:', error);
+    }
   };
 
   const toggleMenu = () => {
@@ -24,25 +28,23 @@ const Navbar = () => {
 
   // Role-specific menu items
   const getRoleSpecificItems = () => {
-    if (!user) return [];
+    if (!currentUser || !isAuthenticated()) return [];
 
-    switch (user.role) {
+    switch (currentUser.role) {
       case 'ADMIN':
         return [
-          { label: 'Users', path: '/admin/users', icon: <FaUserCircle className="mr-2" /> },
-          { label: 'Reports', path: '/admin/reports', icon: <FaMoneyBillWave className="mr-2" /> },
+          { label: 'Users', path: '/admin/users', icon: <FaUsers className="mr-2" /> },
+          { label: 'Dashboard', path: '/admin/dashboard', icon: <FaClipboardList className="mr-2" /> },
         ];
       case 'LANDLORD':
         return [
           { label: 'My Properties', path: '/landlord/properties', icon: <FaBuilding className="mr-2" /> },
-          { label: 'Leases', path: '/landlord/leases', icon: <FaMoneyBillWave className="mr-2" /> },
-          { label: 'Maintenance', path: '/landlord/maintenance', icon: <FaTools className="mr-2" /> },
+          { label: 'Dashboard', path: '/landlord/dashboard', icon: <FaClipboardList className="mr-2" /> },
         ];
       case 'TENANT':
         return [
-          { label: 'My Lease', path: '/tenant/lease', icon: <FaMoneyBillWave className="mr-2" /> },
-          { label: 'Payments', path: '/tenant/payments', icon: <FaMoneyBillWave className="mr-2" /> },
-          { label: 'Maintenance', path: '/tenant/maintenance', icon: <FaTools className="mr-2" /> },
+          { label: 'Browse', path: '/properties', icon: <FaBuilding className="mr-2" /> },
+          { label: 'Dashboard', path: '/tenant/dashboard', icon: <FaClipboardList className="mr-2" /> },
         ];
       default:
         return [];
@@ -68,7 +70,7 @@ const Navbar = () => {
                   </Link>
                 </li>
               ))}
-              {user && (
+              {currentUser && isAuthenticated() && (
                 <>
                   <li>
                     <Link to="/messages" className="flex items-center">
@@ -77,7 +79,7 @@ const Navbar = () => {
                   </li>
                   <li>
                     <Link to="/profile" className="flex items-center">
-                      <FaUserCircle className="mr-2" />Profile
+                      <FaUser className="mr-2" />Profile
                     </Link>
                   </li>
                   <li>
@@ -104,11 +106,14 @@ const Navbar = () => {
         </ul>
       </div>
       <div className="navbar-end">
-        {user ? (
+        {currentUser && isAuthenticated() ? (
           <div className="dropdown dropdown-end">
             <label tabIndex={0} className="btn btn-ghost btn-circle avatar">
               <div className="w-10 rounded-full">
-                <img src={user.profilePic || "https://via.placeholder.com/100"} alt="Profile" />
+                <img 
+                  src={currentUser.profileImage || "https://via.placeholder.com/100"} 
+                  alt={`${currentUser.firstName}'s profile`} 
+                />
               </div>
             </label>
             <ul tabIndex={0} className="mt-3 p-2 shadow menu menu-compact dropdown-content bg-base-100 rounded-box w-52 text-base-content">

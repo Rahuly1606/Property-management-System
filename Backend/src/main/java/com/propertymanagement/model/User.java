@@ -35,6 +35,9 @@ public class User extends BaseEntity implements UserDetails {
     @Column(name = "profile_image")
     private String profileImage;
     
+    @Column(name = "address")
+    private String address;
+    
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private UserRole role;
@@ -101,6 +104,14 @@ public class User extends BaseEntity implements UserDetails {
     
     public void setProfileImage(String profileImage) {
         this.profileImage = profileImage;
+    }
+    
+    public String getAddress() {
+        return address;
+    }
+    
+    public void setAddress(String address) {
+        this.address = address;
     }
     
     public UserRole getRole() {

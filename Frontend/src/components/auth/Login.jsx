@@ -12,8 +12,11 @@ import {
   CircularProgress,
   Grid,
   Checkbox,
-  FormControlLabel
+  FormControlLabel,
+  IconButton,
+  InputAdornment
 } from '@mui/material';
+import { Visibility, VisibilityOff } from '@mui/icons-material';
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -23,6 +26,7 @@ const Login = () => {
   });
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -33,16 +37,24 @@ const Login = () => {
     }));
   };
 
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
 
     try {
-      await authService.login(formData.email, formData.password);
+      console.log('Attempting login with:', { email: formData.email });
+      const response = await authService.login(formData.email, formData.password);
+      console.log('Login successful, response:', response);
       
       // Redirect based on user role
       const user = authService.getCurrentUser();
+      console.log('Current user:', user);
+      
       if (user) {
         if (user.role === 'ADMIN') {
           navigate('/admin/dashboard');
@@ -54,11 +66,14 @@ const Login = () => {
           navigate('/');
         }
       } else {
+        console.warn('User info not found after login');
         navigate('/');
       }
     } catch (err) {
+      console.error('Login error:', err);
       setError(
         err.response?.data?.message || 
+        err.message ||
         'Login failed. Please check your credentials and try again.'
       );
     } finally {
@@ -95,11 +110,24 @@ const Login = () => {
               fullWidth
               name="password"
               label="Password"
-              type="password"
+              type={showPassword ? "text" : "password"}
               id="password"
               autoComplete="current-password"
               value={formData.password}
               onChange={handleChange}
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      aria-label="toggle password visibility"
+                      onClick={togglePasswordVisibility}
+                      edge="end"
+                    >
+                      {showPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                )
+              }}
             />
             <FormControlLabel
               control={

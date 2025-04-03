@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { FaBuilding, FaMoneyBillWave, FaTools, FaCalendarAlt, FaPlus } from 'react-icons/fa';
+import { FaBuilding, FaMoneyBillWave, FaTools, FaCalendarAlt, FaPlus, FaBug } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
 import axios from '../../utils/api';
-import { useAuth } from '../../hooks/useAuth';
+import { useAuth } from '../../contexts/AuthContext';
 import Button from '../../components/common/Button';
 import Card from '../../components/common/Card';
+import { toggleMockDataMode, isMockDataModeEnabled } from '../../utils/mockData';
 
 const LandlordDashboard = () => {
   const { user } = useAuth();
@@ -18,6 +19,15 @@ const LandlordDashboard = () => {
   const [recentPayments, setRecentPayments] = useState([]);
   const [maintenanceRequests, setMaintenanceRequests] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [mockModeEnabled, setMockModeEnabled] = useState(isMockDataModeEnabled());
+  const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+
+  const handleToggleMockMode = () => {
+    const isEnabled = toggleMockDataMode();
+    setMockModeEnabled(isEnabled);
+    // Refresh the page to apply mock mode
+    window.location.reload();
+  };
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -63,6 +73,15 @@ const LandlordDashboard = () => {
           <p className="text-gray-500">Welcome back, {user?.firstName}!</p>
         </div>
         <div className="flex items-center gap-4 mt-4 md:mt-0">
+          {isDevelopment && (
+            <button 
+              onClick={handleToggleMockMode} 
+              className="debug-btn p-2 border border-dashed rounded-full hover:bg-gray-100"
+              title={mockModeEnabled ? "Mock Mode Enabled - Click to disable" : "Mock Mode Disabled - Click to enable"}
+            >
+              <FaBug className={mockModeEnabled ? "text-green-500" : "text-gray-400"} />
+            </button>
+          )}
           <Link to="/landlord/properties/add">
             <Button variant="primary" className="flex items-center gap-2">
               <FaPlus /> Add Property

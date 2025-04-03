@@ -5,8 +5,12 @@ import com.propertymanagement.exception.ResourceNotFoundException;
 import com.propertymanagement.model.User;
 import com.propertymanagement.model.UserRole;
 import com.propertymanagement.repository.UserRepository;
+import com.propertymanagement.service.CloudinaryService;
 import com.propertymanagement.service.UserService;
 import com.propertymanagement.service.base.impl.BaseServiceImpl;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -19,11 +23,15 @@ import java.util.Optional;
 @Service
 public class UserServiceImpl extends BaseServiceImpl<User, UserRepository> implements UserService {
 
+    private static final Logger logger = LoggerFactory.getLogger(UserServiceImpl.class);
     private final PasswordEncoder passwordEncoder;
+    private final CloudinaryService cloudinaryService;
 
-    public UserServiceImpl(UserRepository repository, PasswordEncoder passwordEncoder) {
+    @Autowired
+    public UserServiceImpl(UserRepository repository, PasswordEncoder passwordEncoder, CloudinaryService cloudinaryService) {
         super(repository);
         this.passwordEncoder = passwordEncoder;
+        this.cloudinaryService = cloudinaryService;
     }
 
     @Override
@@ -99,15 +107,84 @@ public class UserServiceImpl extends BaseServiceImpl<User, UserRepository> imple
 
     @Override
     @Transactional
-    public User updateUserProfile(Long id, String firstName, String lastName, String phoneNumber, String profileImage) {
+    public User updateUserProfile(Long id, String firstName, String lastName, String phoneNumber, String profileImage, String address) {
         User user = findById(id);
+        logger.info("Updating profile for user ID: {}, email: {}", id, user.getEmail());
         
-        if (firstName != null) user.setFirstName(firstName);
-        if (lastName != null) user.setLastName(lastName);
-        if (phoneNumber != null) user.setPhoneNumber(phoneNumber);
-        if (profileImage != null) user.setProfileImage(profileImage);
+        if (firstName != null) {
+            logger.debug("Updating firstName from '{}' to '{}'", user.getFirstName(), firstName);
+            user.setFirstName(firstName);
+        }
+        if (lastName != null) {
+            logger.debug("Updating lastName from '{}' to '{}'", user.getLastName(), lastName);
+            user.setLastName(lastName);
+        }
+        if (phoneNumber != null) {
+            logger.debug("Updating phoneNumber from '{}' to '{}'", user.getPhoneNumber(), phoneNumber);
+            user.setPhoneNumber(phoneNumber);
+        }
+        if (address != null) {
+            logger.debug("Updating address from '{}' to '{}'", user.getAddress(), address);
+            user.setAddress(address);
+        }
         
-        return repository.save(user);
+        // Handle profile image
+        if (profileImage != null) {
+            // If it's a base64 image, upload it to Cloudinary
+            if (profileImage.startsWith("data:image")) {
+                logger.info("Received base64 profile image data for user ID: {}, length: {}", id, profileImage.length());
+                logger.debug("Base64 image prefix: {}", profileImage.substring(0, Math.min(30, profileImage.length())) + "...");
+                
+                String imageUrl = cloudinaryService.uploadImage(profileImage, "users");
+                if (imageUrl != null) {
+                    logger.info("Successfully uploaded profile image to Cloudinary: {}", imageUrl);
+                    
+                    // If the user already had a profile image, delete the old one
+                    if (user.getProfileImage() != null && !user.getProfileImage().isEmpty()) {
+                        logger.debug("Deleting old profile image: {}", user.getProfileImage());
+                        String publicId = cloudinaryService.getPublicIdFromUrl(user.getProfileImage());
+                        if (publicId != null) {
+                            boolean deleted = cloudinaryService.deleteImage(publicId);
+                            logger.debug("Old image deletion result: {}", deleted ? "success" : "failed");
+                        } else {
+                            logger.warn("Could not extract public ID from old image URL: {}", user.getProfileImage());
+                        }
+                    }
+                    
+                    user.setProfileImage(imageUrl);
+                    logger.info("Profile image updated for user ID: {}", id);
+                } else {
+                    logger.error("Failed to upload profile image to Cloudinary for user ID: {}", id);
+                }
+            } else if (profileImage.isEmpty()) {
+                // Remove existing profile image if empty string is provided
+                logger.info("Removing profile image for user ID: {}", id);
+                
+                if (user.getProfileImage() != null && !user.getProfileImage().isEmpty()) {
+                    logger.debug("Deleting existing profile image: {}", user.getProfileImage());
+                    String publicId = cloudinaryService.getPublicIdFromUrl(user.getProfileImage());
+                    if (publicId != null) {
+                        boolean deleted = cloudinaryService.deleteImage(publicId);
+                        logger.debug("Image deletion result: {}", deleted ? "success" : "failed");
+                    } else {
+                        logger.warn("Could not extract public ID from image URL: {}", user.getProfileImage());
+                    }
+                }
+                
+                user.setProfileImage(null);
+                logger.info("Profile image removed for user ID: {}", id);
+            } else {
+                // If it's a URL or other string, just set it
+                logger.info("Setting profile image URL directly: {}", profileImage);
+                user.setProfileImage(profileImage);
+            }
+        } else {
+            logger.debug("No profile image update requested (profileImage parameter is null)");
+        }
+        
+        User savedUser = repository.save(user);
+        logger.info("User profile updated successfully for ID: {}", id);
+        return savedUser;
     }
 
     @Override

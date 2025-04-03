@@ -28,22 +28,37 @@ public class PaymentMapper {
             return null;
         }
 
-        return PaymentDTO.builder()
-                .id(payment.getId())
-                .amount(payment.getAmount())
-                .description(payment.getDescription())
-                .leaseId(payment.getLease() != null ? payment.getLease().getId() : null)
-                .lease(payment.getLease() != null ? leaseMapper.toDTO(payment.getLease()) : null)
-                .tenant(payment.getTenant() != null ? userMapper.toDTO(payment.getTenant()) : null)
-                .propertyId(payment.getProperty() != null ? payment.getProperty().getId() : null)
-                .property(payment.getProperty() != null ? propertyMapper.toDTO(payment.getProperty()) : null)
-                .transactionId(payment.getTransactionId())
-                .paymentDate(payment.getPaymentDate() != null ? payment.getPaymentDate().atStartOfDay() : null)
-                .paymentMethod(payment.getPaymentMethod())
-                .status(payment.getStatus())
-                .receiptUrl(payment.getReceiptUrl())
-                .createdAt(payment.getCreatedAt())
-                .build();
+        PaymentDTO dto = new PaymentDTO();
+        dto.setId(payment.getId());
+        dto.setAmount(payment.getAmount());
+        dto.setDescription(payment.getDescription());
+        
+        if (payment.getLease() != null) {
+            dto.setLeaseId(payment.getLease().getId());
+            dto.setLease(leaseMapper.toDTO(payment.getLease()));
+        }
+        
+        if (payment.getTenant() != null) {
+            dto.setTenant(userMapper.toDTO(payment.getTenant()));
+        }
+        
+        if (payment.getProperty() != null) {
+            dto.setPropertyId(payment.getProperty().getId());
+            dto.setProperty(propertyMapper.toDTO(payment.getProperty()));
+        }
+        
+        dto.setTransactionId(payment.getTransactionId());
+        
+        if (payment.getPaymentDate() != null) {
+            dto.setPaymentDate(payment.getPaymentDate().atStartOfDay());
+        }
+        
+        dto.setPaymentMethod(payment.getPaymentMethod());
+        dto.setStatus(payment.getStatus());
+        dto.setReceiptUrl(payment.getReceiptUrl());
+        dto.setCreatedAt(payment.getCreatedAt());
+        
+        return dto;
     }
 
     /**
@@ -72,7 +87,11 @@ public class PaymentMapper {
         payment.setAmount(paymentDTO.getAmount());
         payment.setDescription(paymentDTO.getDescription());
         payment.setTransactionId(paymentDTO.getTransactionId());
-        payment.setPaymentDate(paymentDTO.getPaymentDate() != null ? paymentDTO.getPaymentDate().toLocalDate() : null);
+        
+        if (paymentDTO.getPaymentDate() != null) {
+            payment.setPaymentDate(paymentDTO.getPaymentDate().toLocalDate());
+        }
+        
         payment.setPaymentMethod(paymentDTO.getPaymentMethod());
         payment.setStatus(paymentDTO.getStatus());
         payment.setReceiptUrl(paymentDTO.getReceiptUrl());

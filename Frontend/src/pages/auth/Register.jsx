@@ -1,19 +1,25 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { FaUser, FaEnvelope, FaLock, FaUserTie, FaHome, FaUserCheck } from 'react-icons/fa';
+import { FaUser, FaEnvelope, FaLock, FaUserTie, FaHome, FaUserCheck, FaPhone, FaEye, FaEyeSlash } from 'react-icons/fa';
 import './Auth.css';
+import authService from '../../services/authService'; // Import direct authService
 
 const Register = () => {
   const [formData, setFormData] = useState({
-    name: '',
+    firstName: '',
+    lastName: '',
     email: '',
+    phoneNumber: '',
     password: '',
     confirmPassword: '',
     role: 'TENANT' // Default role
   });
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { register } = useAuth();
   const navigate = useNavigate();
 
@@ -25,21 +31,30 @@ const Register = () => {
     }));
   };
 
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
+  };
+
+  const toggleConfirmPasswordVisibility = () => {
+    setShowConfirmPassword(!showConfirmPassword);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setSuccess('');
     setIsLoading(true);
 
     try {
       // Validation
-      if (!formData.name || !formData.email || !formData.password || !formData.confirmPassword) {
+      if (!formData.firstName || !formData.lastName || !formData.email || !formData.password || !formData.confirmPassword) {
         setError('All fields are required');
         setIsLoading(false);
         return;
       }
 
-      if (formData.password.length < 6) {
-        setError('Password must be at least 6 characters');
+      if (formData.password.length < 8) {
+        setError('Password must be at least 8 characters');
         setIsLoading(false);
         return;
       }
@@ -58,34 +73,62 @@ const Register = () => {
         return;
       }
 
-      const result = await register({
-        name: formData.name,
+      // Prepare the request body with the correct field names
+      const registrationData = {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
         email: formData.email,
+        phoneNumber: formData.phoneNumber,
         password: formData.password,
         role: formData.role
-      });
+      };
+      
+      console.log("Sending registration data:", registrationData);
+
+      // Try direct API call first
+      try {
+        const directResponse = await authService.register(registrationData);
+        console.log("Direct registration response:", directResponse);
+        
+        if (directResponse.data && directResponse.data.token) {
+          setSuccess('Registration successful! Redirecting to dashboard...');
+          
+          // Redirect based on role
+          setTimeout(() => {
+            if (formData.role === 'LANDLORD') {
+              navigate('/landlord/dashboard');
+            } else {
+              navigate('/tenant/dashboard');
+            }
+          }, 1500);
+          return;
+        }
+      } catch (directError) {
+        console.error("Direct registration failed, trying context method:", directError);
+      }
+      
+      // If direct call fails, use context method
+      const result = await register(registrationData);
 
       if (result.success) {
+        setSuccess('Registration successful! Redirecting to dashboard...');
+        
         // Redirect based on role
-        switch (formData.role) {
-          case 'ADMIN':
-            navigate('/admin/dashboard');
-            break;
-          case 'LANDLORD':
+        setTimeout(() => {
+          if (formData.role === 'LANDLORD') {
             navigate('/landlord/dashboard');
-            break;
-          case 'TENANT':
+          } else {
             navigate('/tenant/dashboard');
-            break;
-          default:
-            navigate('/');
-        }
+          }
+        }, 1500);
       } else {
         setError(result.error || 'Registration failed');
       }
     } catch (error) {
       console.error('Registration error:', error);
-      setError('An unexpected error occurred. Please try again.');
+      setError(error.response?.data?.message || 
+               error.message || 
+               'An unexpected error occurred. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -102,22 +145,44 @@ const Register = () => {
         {error && (
           <div className="alert alert-danger">{error}</div>
         )}
+        
+        {success && (
+          <div className="alert alert-success">{success}</div>
+        )}
 
         <form onSubmit={handleSubmit} className="auth-form">
-          <div className="form-group">
-            <label htmlFor="name" className="form-label">
-              <FaUser /> Full Name
-            </label>
-            <input
-              type="text"
-              id="name"
-              name="name"
-              className="form-control"
-              placeholder="Enter your full name"
-              value={formData.name}
-              onChange={handleChange}
-              required
-            />
+          <div className="form-row">
+            <div className="form-group half">
+              <label htmlFor="firstName" className="form-label">
+                <FaUser /> First Name
+              </label>
+              <input
+                type="text"
+                id="firstName"
+                name="firstName"
+                className="form-control"
+                placeholder="First name"
+                value={formData.firstName}
+                onChange={handleChange}
+                required
+              />
+            </div>
+
+            <div className="form-group half">
+              <label htmlFor="lastName" className="form-label">
+                <FaUser /> Last Name
+              </label>
+              <input
+                type="text"
+                id="lastName"
+                name="lastName"
+                className="form-control"
+                placeholder="Last name"
+                value={formData.lastName}
+                onChange={handleChange}
+                required
+              />
+            </div>
           </div>
 
           <div className="form-group">
@@ -137,35 +202,70 @@ const Register = () => {
           </div>
 
           <div className="form-group">
-            <label htmlFor="password" className="form-label">
-              <FaLock /> Password
+            <label htmlFor="phoneNumber" className="form-label">
+              <FaPhone /> Phone Number
             </label>
             <input
-              type="password"
-              id="password"
-              name="password"
+              type="tel"
+              id="phoneNumber"
+              name="phoneNumber"
               className="form-control"
-              placeholder="Enter your password"
-              value={formData.password}
+              placeholder="Enter your phone number"
+              value={formData.phoneNumber}
               onChange={handleChange}
               required
             />
           </div>
 
           <div className="form-group">
+            <label htmlFor="password" className="form-label">
+              <FaLock /> Password
+            </label>
+            <div className="password-input">
+              <input
+                type={showPassword ? "text" : "password"}
+                id="password"
+                name="password"
+                className="form-control"
+                placeholder="Enter your password"
+                value={formData.password}
+                onChange={handleChange}
+                required
+              />
+              <button
+                type="button"
+                className="password-toggle"
+                onClick={togglePasswordVisibility}
+              >
+                {showPassword ? <FaEyeSlash /> : <FaEye />}
+              </button>
+            </div>
+            <small className="form-text text-muted">Password must be at least 8 characters long</small>
+          </div>
+
+          <div className="form-group">
             <label htmlFor="confirmPassword" className="form-label">
               <FaLock /> Confirm Password
             </label>
-            <input
-              type="password"
-              id="confirmPassword"
-              name="confirmPassword"
-              className="form-control"
-              placeholder="Confirm your password"
-              value={formData.confirmPassword}
-              onChange={handleChange}
-              required
-            />
+            <div className="password-input">
+              <input
+                type={showConfirmPassword ? "text" : "password"}
+                id="confirmPassword"
+                name="confirmPassword"
+                className="form-control"
+                placeholder="Confirm your password"
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                required
+              />
+              <button
+                type="button"
+                className="password-toggle"
+                onClick={toggleConfirmPasswordVisibility}
+              >
+                {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
+              </button>
+            </div>
           </div>
 
           <div className="form-group">

@@ -5,7 +5,10 @@ const API_URL = 'http://localhost:8080/api';
 // Create axios instance with credentials
 const axiosInstance = axios.create({
   baseURL: API_URL,
-  withCredentials: true
+  withCredentials: true,
+  headers: {
+    'Content-Type': 'application/json'
+  }
 });
 
 // Request interceptor to add auth token
@@ -35,7 +38,7 @@ axiosInstance.interceptors.response.use(
       originalRequest._retry = true;
       try {
         const refreshResponse = await axios.post(`${API_URL}/auth/refresh-token`, {}, { withCredentials: true });
-        localStorage.setItem('token', refreshResponse.data.accessToken);
+        localStorage.setItem('token', refreshResponse.data.token);
         return axiosInstance(originalRequest);
       } catch (refreshError) {
         // If refresh fails, logout
@@ -52,21 +55,53 @@ axiosInstance.interceptors.response.use(
 const authService = {
   login: async (email, password) => {
     try {
+      console.log('Login attempt for:', email);
       const response = await axios.post(`${API_URL}/auth/login`, { email, password });
-      if (response.data.accessToken) {
-        localStorage.setItem('token', response.data.accessToken);
-        localStorage.setItem('user', JSON.stringify(response.data.user));
+      console.log('Login response:', response.data);
+      
+      if (response.data.token) {
+        localStorage.setItem('token', response.data.token);
+        localStorage.setItem('user', JSON.stringify({
+          id: response.data.id,
+          email: response.data.email,
+          firstName: response.data.firstName,
+          lastName: response.data.lastName,
+          role: response.data.role,
+          phoneNumber: response.data.phoneNumber,
+          profileImage: response.data.profileImage,
+          address: response.data.address
+        }));
       }
       return response.data;
     } catch (error) {
+      console.error('Login error:', error);
       throw error;
     }
   },
 
   register: async (userData) => {
     try {
-      return await axios.post(`${API_URL}/auth/register`, userData);
+      console.log('Registering user with data:', userData);
+      const response = await axios.post(`${API_URL}/auth/register`, userData);
+      console.log('Registration response:', response.data);
+      
+      // If the registration response includes a token, store it
+      if (response.data && response.data.token) {
+        localStorage.setItem('token', response.data.token);
+        localStorage.setItem('user', JSON.stringify({
+          id: response.data.id,
+          email: response.data.email,
+          firstName: response.data.firstName,
+          lastName: response.data.lastName,
+          phoneNumber: response.data.phoneNumber,
+          address: response.data.address,
+          role: response.data.role,
+          profileImage: response.data.profileImage
+        }));
+      }
+      return response;
     } catch (error) {
+      console.error('Registration error:', error);
       throw error;
     }
   },
@@ -113,32 +148,98 @@ const authService = {
 
   getUserProfile: async () => {
     try {
-      const response = await axiosInstance.get(`${API_URL}/users/profile`);
+      const response = await axiosInstance.get(`${API_URL}/users/me`);
       return response.data;
     } catch (error) {
+      console.error("Error fetching user profile:", error);
       throw error;
     }
   },
 
   updateUserProfile: async (profileData) => {
     try {
-      const response = await axiosInstance.put(`${API_URL}/users/profile`, profileData);
+      // Get current user ID
+      const currentUser = authService.getCurrentUser();
+      if (!currentUser || !currentUser.id) {
+        throw new Error("User ID not found");
+      }
+      
+      console.log("Updating profile with data:", {
+        ...profileData,
+        profileImage: profileData.profileImage ? 
+          (typeof profileData.profileImage === 'string' && profileData.profileImage.startsWith('data:image') ? 
+            '[BASE64_IMAGE_DATA]' : profileData.profileImage) : undefined
+      });
+      
+      // Send profile data directly in the request body instead of URL parameters
+      // This avoids URL length limitations and encoding issues with base64 data
+      const response = await axiosInstance.post(
+        `${API_URL}/users/${currentUser.id}/profile`, 
+        profileData,
+        {
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+      
       // Update stored user data if profile is updated
       if (response.data) {
-        const currentUser = authService.getCurrentUser();
-        const updatedUser = { ...currentUser, ...response.data };
+        console.log("Profile updated successfully, received:", {
+          ...response.data,
+          profileImage: response.data.profileImage ? '[IMAGE_URL]' : null
+        });
+        
+        const updatedUser = { 
+          ...currentUser, 
+          firstName: response.data.firstName || currentUser.firstName,
+          lastName: response.data.lastName || currentUser.lastName,
+          phoneNumber: response.data.phoneNumber || currentUser.phoneNumber,
+          address: response.data.address || currentUser.address,
+          profileImage: response.data.profileImage || currentUser.profileImage
+        };
+        
         localStorage.setItem('user', JSON.stringify(updatedUser));
       }
-      return response.data;
+      
+      return {
+        success: true,
+        data: response.data
+      };
     } catch (error) {
-      throw error;
+      console.error("Error updating user profile:", error);
+      return {
+        success: false,
+        error: error.response?.data?.message || error.message || "Failed to update profile"
+      };
     }
   },
 
   changePassword: async (passwordData) => {
     try {
-      return await axiosInstance.put(`${API_URL}/users/change-password`, passwordData);
+      // Get current user ID
+      const currentUser = authService.getCurrentUser();
+      if (!currentUser || !currentUser.id) {
+        throw new Error("User ID not found");
+      }
+
+      console.log("Changing password for user ID:", currentUser.id);
+      
+      // The endpoint expects path parameters instead of a JSON body
+      const response = await axiosInstance.put(
+        `${API_URL}/users/${currentUser.id}/password`, 
+        null, 
+        { 
+          params: {
+            currentPassword: passwordData.currentPassword,
+            newPassword: passwordData.newPassword
+          }
+        }
+      );
+      
+      return response.data;
     } catch (error) {
+      console.error("Error changing password:", error);
       throw error;
     }
   }
@@ -159,6 +260,9 @@ const getUserProfile = authService.getUserProfile;
 const updateProfile = authService.updateUserProfile;
 const changePassword = authService.changePassword;
 
+// Export the axios instance for use in other services
+export { axiosInstance };
+
 export default authService;
 export {
   login,
@@ -173,6 +277,5 @@ export {
   isTenant,
   getUserProfile,
   updateProfile,
-  changePassword,
-  axiosInstance
+  changePassword
 }; 

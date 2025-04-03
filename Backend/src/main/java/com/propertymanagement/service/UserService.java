@@ -28,7 +28,7 @@ public interface UserService extends BaseService<User> {
     
     void deleteUser(Long id);
     
-    User updateUserProfile(Long id, String firstName, String lastName, String phoneNumber, String profileImage);
+    User updateUserProfile(Long id, String firstName, String lastName, String phoneNumber, String profileImage, String address);
     
     User changeUserPassword(Long id, String currentPassword, String newPassword);
     

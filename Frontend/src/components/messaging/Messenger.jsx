@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useAuth } from '../../hooks/useAuth';
+import { useAuth } from '../../contexts/AuthContext';
 import { FaPaperPlane, FaImage, FaFile, FaEllipsisV, FaSearch } from 'react-icons/fa';
 import axios from '../../utils/api';
 import { toast } from 'react-toastify';

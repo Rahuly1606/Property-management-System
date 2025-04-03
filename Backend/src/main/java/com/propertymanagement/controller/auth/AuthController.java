@@ -58,6 +58,7 @@ public class AuthController {
         response.setLastName(user.getLastName());
         response.setRole(user.getRole());
         response.setProfileImage(user.getProfileImage());
+        response.setAddress(user.getAddress());
         
         return ResponseEntity.ok(response);
     }
@@ -90,6 +91,7 @@ public class AuthController {
                 response.setLastName(user.getLastName());
                 response.setRole(user.getRole());
                 response.setProfileImage(user.getProfileImage());
+                response.setAddress(user.getAddress());
                 
                 return ResponseEntity.ok(response);
             } catch (Exception tokenEx) {
