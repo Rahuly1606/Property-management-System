@@ -7,6 +7,9 @@ const Navbar = () => {
   const { currentUser, isAuthenticated, logout } = useAuth();
   const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  
+  // Check if isAuthenticated is a function or a boolean
+  const checkAuthenticated = typeof isAuthenticated === 'function' ? isAuthenticated() : isAuthenticated;
 
   const handleLogout = async () => {
     try {
@@ -28,7 +31,8 @@ const Navbar = () => {
 
   // Role-specific menu items
   const getRoleSpecificItems = () => {
-    if (!currentUser || !isAuthenticated()) return [];
+    const authenticated = typeof isAuthenticated === 'function' ? isAuthenticated() : isAuthenticated;
+    if (!currentUser || !authenticated) return [];
 
     switch (currentUser.role) {
       case 'ADMIN':
@@ -70,7 +74,7 @@ const Navbar = () => {
                   </Link>
                 </li>
               ))}
-              {currentUser && isAuthenticated() && (
+              {currentUser && checkAuthenticated && (
                 <>
                   <li>
                     <Link to="/messages" className="flex items-center">
@@ -106,7 +110,7 @@ const Navbar = () => {
         </ul>
       </div>
       <div className="navbar-end">
-        {currentUser && isAuthenticated() ? (
+        {currentUser && checkAuthenticated ? (
           <div className="dropdown dropdown-end">
             <label tabIndex={0} className="btn btn-ghost btn-circle avatar">
               <div className="w-10 rounded-full">

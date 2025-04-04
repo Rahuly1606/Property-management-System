@@ -47,7 +47,8 @@ const PropertyForm = () => {
   
   useEffect(() => {
     // Redirect if not a landlord
-    if (!isLandlord()) {
+    const checkLandlordStatus = typeof isLandlord === 'function' ? isLandlord() : isLandlord;
+    if (!checkLandlordStatus) {
       navigate('/login');
       return;
     }

@@ -329,6 +329,7 @@ export const AuthProvider = ({ children }) => {
     return isAuthenticated() && !!currentUser;
   };
 
+  // The value to be provided in the context
   const value = {
     currentUser,
     userRole,
@@ -339,10 +340,12 @@ export const AuthProvider = ({ children }) => {
     logout,
     updateUserProfile,
     hasRole,
-    isLandlord,
-    isTenant,
-    isAdmin,
-    isAuthenticated: checkAuthenticated
+    isLandlord,            // Provide function reference
+    isTenant,              // Provide function reference
+    isAdmin,               // Provide function reference
+    checkAuthenticated,    // Provide function reference
+    isAuthenticated: checkAuthenticated, // Alias for backward compatibility
+    getCurrentUser: () => currentUser
   };
 
   return (

@@ -12,7 +12,7 @@ import './PropertyDetails.css';
 const PropertyDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { isLandlord, isTenant, getCurrentUser } = useAuth();
+  const { isLandlord, isTenant, currentUser, getCurrentUser } = useAuth();
   
   const [property, setProperty] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -28,14 +28,16 @@ const PropertyDetails = () => {
   const [contactSuccess, setContactSuccess] = useState(false);
   const [contactError, setContactError] = useState('');
   
-  const currentUser = getCurrentUser();
-  const isOwner = currentUser && property?.landlordId === currentUser.id;
+  // Either use getCurrentUser() function or the current user from context directly
+  const user = getCurrentUser ? getCurrentUser() : currentUser;
+  const isOwner = user && property?.landlordId === user.id;
   
   useEffect(() => {
     const fetchProperty = async () => {
       try {
         setLoading(true);
         const data = await propertyService.getPropertyById(id);
+        console.log("Fetched property details:", data);
         setProperty(data);
       } catch (err) {
         console.error('Error fetching property:', err);
@@ -329,7 +331,8 @@ const PropertyDetails = () => {
             </div>
           </div>
           
-          {(isTenant() || !currentUser) && property.available && (
+          {/* Contact Section - Show only for tenants or unauthenticated users when property is available */}
+          {((typeof isTenant === 'boolean' && isTenant) || !user) && property.available && (
             <div className="contact-section">
               {showContactForm ? (
                 <div className="contact-form-container">

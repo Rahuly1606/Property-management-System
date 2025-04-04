@@ -23,7 +23,7 @@ const ManageProperties = () => {
   useEffect(() => {
     // Debug logging to check auth state
     console.log('Auth state in ManageProperties:', {
-      isLandlord: isLandlord(),
+      isLandlord: typeof isLandlord === 'function' ? isLandlord() : isLandlord,
       userRole,
       isLoggedIn: !!currentUser,
       userDetails: currentUser ? {
@@ -35,7 +35,8 @@ const ManageProperties = () => {
     });
     
     // Redirect if not a landlord
-    if (!isLandlord()) {
+    const checkLandlordStatus = typeof isLandlord === 'function' ? isLandlord() : isLandlord;
+    if (!checkLandlordStatus) {
       console.warn('User is not a landlord, redirecting to login');
       navigate('/login');
       return;

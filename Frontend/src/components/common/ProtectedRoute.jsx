@@ -3,7 +3,7 @@ import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 
 const ProtectedRoute = ({ allowedRoles }) => {
-  const { currentUser, userRole, loading, isAuthenticated } = useAuth();
+  const { currentUser, userRole, loading, checkAuthenticated } = useAuth();
   
   // While checking authentication status, show nothing
   if (loading) {
@@ -11,7 +11,7 @@ const ProtectedRoute = ({ allowedRoles }) => {
   }
   
   // Check if user is logged in
-  if (!isAuthenticated()) {
+  if (!checkAuthenticated()) {
     console.log('User not authenticated, redirecting to login');
     return <Navigate to="/login" replace />;
   }

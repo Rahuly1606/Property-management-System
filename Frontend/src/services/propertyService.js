@@ -221,60 +221,6 @@ const propertyService = {
     try {
       const { page = 0, size = 10, ...filters } = params;
       
-      // For development testing - return mock data if MOCK_API is set in localStorage
-      const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-      if (isDevelopment && localStorage.getItem('MOCK_API') === 'true') {
-        console.log('Using mock data for getMyProperties');
-        // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 800));
-        
-        // Mock property data
-        const mockProperties = [
-          {
-            id: 1,
-            title: 'Luxury Apartment Downtown',
-            address: '123 Main St',
-            city: 'New York',
-            state: 'NY',
-            propertyType: 'APARTMENT',
-            totalArea: 1200,
-            numberOfBedrooms: 2,
-            numberOfBathrooms: 2,
-            monthlyRent: 2500,
-            securityDeposit: 2500,
-            availableFrom: '2023-07-01',
-            available: true,
-            images: ['https://via.placeholder.com/800x600'],
-            amenities: ['Central AC', 'In-unit Laundry', 'Gym']
-          },
-          {
-            id: 2,
-            title: 'Modern Condo with View',
-            address: '456 Park Ave',
-            city: 'Chicago',
-            state: 'IL',
-            propertyType: 'CONDO',
-            totalArea: 950,
-            numberOfBedrooms: 1,
-            numberOfBathrooms: 1,
-            monthlyRent: 1800,
-            securityDeposit: 1800,
-            availableFrom: '2023-06-15',
-            available: true,
-            images: ['https://via.placeholder.com/800x600'],
-            amenities: ['Balcony', 'Pool', 'Parking']
-          }
-        ];
-        
-        return {
-          content: mockProperties,
-          totalPages: 1,
-          totalElements: mockProperties.length,
-          size: size,
-          number: page
-        };
-      }
-      
       let queryParams = new URLSearchParams({
         page,
         size
@@ -298,41 +244,6 @@ const propertyService = {
   // Get a single property by ID
   getPropertyById: async (id) => {
     try {
-      // For development testing - return mock data if MOCK_API is set in localStorage
-      const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-      if (isDevelopment && localStorage.getItem('MOCK_API') === 'true') {
-        console.log(`Using mock data for getPropertyById(${id})`);
-        // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 800));
-        
-        // Find the property in our mock data
-        const mockProperty = {
-          id: id,
-          title: 'Luxury Apartment Downtown',
-          description: 'A beautiful luxury apartment with amazing city views',
-          address: '123 Main St',
-          city: 'New York',
-          state: 'NY',
-          propertyType: 'APARTMENT',
-          totalArea: 1200,
-          numberOfBedrooms: 2,
-          numberOfBathrooms: 2,
-          monthlyRent: 2500,
-          securityDeposit: 2500,
-          availableFrom: '2023-07-01',
-          available: true,
-          images: ['https://via.placeholder.com/800x600'],
-          amenities: ['Central AC', 'In-unit Laundry', 'Gym'],
-          landlord: {
-            id: 1,
-            firstName: 'John',
-            lastName: 'Doe'
-          }
-        };
-        
-        return mockProperty;
-      }
-      
       const response = await axiosInstance.get(`/properties/${id}`);
       
       // Use our sanitization helper to handle any data format issues
@@ -362,10 +273,61 @@ const propertyService = {
   updateProperty: async (id, propertyData) => {
     try {
       console.log(`Updating property ${id} with data:`, propertyData);
-      const response = await axiosInstance.put(`/properties/${id}`, propertyData);
-      return response.data;
+      
+      // Check if propertyData is FormData or a regular object
+      if (propertyData instanceof FormData) {
+        // Handle multipart form data for image uploads
+        const response = await axiosInstance.put(`/properties/${id}`, propertyData, {
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          }
+        });
+        return response.data;
+      } else {
+        // Regular JSON update
+        const response = await axiosInstance.put(`/properties/${id}`, propertyData);
+        return response.data;
+      }
     } catch (error) {
       console.error(`Error updating property with ID ${id}:`, error);
+      throw error;
+    }
+  },
+  
+  // Upload images for a property
+  uploadPropertyImages: async (id, images) => {
+    try {
+      const formData = new FormData();
+      
+      // Add all images to form data
+      if (Array.isArray(images)) {
+        images.forEach((image, index) => {
+          formData.append('images', image);
+        });
+      } else {
+        formData.append('images', images);
+      }
+      
+      const response = await axiosInstance.post(`/properties/${id}/images`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      
+      return response.data;
+    } catch (error) {
+      console.error(`Error uploading images for property with ID ${id}:`, error);
+      throw error;
+    }
+  },
+  
+  // Delete a property image
+  deletePropertyImage: async (propertyId, imageIndex) => {
+    try {
+      const response = await axiosInstance.delete(`/properties/${propertyId}/images/${imageIndex}`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error deleting image for property ${propertyId}:`, error);
       throw error;
     }
   },
@@ -428,6 +390,25 @@ const propertyService = {
       return response.data.secureUrl;
     } catch (error) {
       console.error('Error uploading property image:', error);
+      throw error;
+    }
+  },
+  
+  // Upload image file (not base64)
+  uploadPropertyImageFile: async (file) => {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const response = await axiosInstance.post('/images/upload-file', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      
+      return response.data.secureUrl;
+    } catch (error) {
+      console.error('Error uploading property image file:', error);
       throw error;
     }
   },

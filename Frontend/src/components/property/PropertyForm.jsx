@@ -130,66 +130,44 @@ const PropertyForm = () => {
   const fetchPropertyData = async () => {
     setInitialLoading(true);
     try {
-      const response = await propertyService.getPropertyById(id);
-      const property = response.data;
+      const property = await propertyService.getPropertyById(id);
       
       // Format dates for form inputs
       const availableDate = property.availableDate ? 
         new Date(property.availableDate).toISOString().split('T')[0] : '';
       
       setFormData({
-        name: property.name || '',
+        name: property.name || property.title || '',
         description: property.description || '',
         address: property.address || '',
         city: property.city || '',
         state: property.state || '',
         zipCode: property.zipCode || '',
         propertyType: property.propertyType || 'APARTMENT',
-        bedrooms: property.bedrooms || 1,
-        bathrooms: property.bathrooms || 1,
-        squareFootage: property.squareFootage || 0,
+        bedrooms: property.bedrooms || property.numberOfBedrooms || 1,
+        bathrooms: property.bathrooms || property.numberOfBathrooms || 1,
+        squareFootage: property.squareFootage || property.totalArea || 0,
         yearBuilt: property.yearBuilt || new Date().getFullYear(),
-        rentAmount: property.rentAmount || 0,
-        depositAmount: property.depositAmount || 0,
+        rentAmount: property.rentAmount || property.monthlyRent || 0,
+        depositAmount: property.depositAmount || property.securityDeposit || 0,
         availableDate: availableDate,
-        status: property.status || 'AVAILABLE',
+        status: property.available ? 'AVAILABLE' : 'UNAVAILABLE',
         amenities: property.amenities || [],
         isActive: property.isActive !== undefined ? property.isActive : true
       });
       
       // Set images if available
       if (property.images && property.images.length > 0) {
-        setImages(property.images);
+        // Convert string URLs to image objects with IDs
+        const imageObjects = property.images.map((url, index) => ({
+          id: index,
+          url: url
+        }));
+        setImages(imageObjects);
       }
-    } catch (err) {
-      console.error('Error fetching property data:', err);
+    } catch (error) {
+      console.error('Error fetching property data:', error);
       setError('Failed to load property data. Please try again.');
-      
-      // Sample data for development
-      setFormData({
-        name: 'Luxury Downtown Apartment',
-        description: 'A beautiful apartment in the heart of downtown with amazing views and modern amenities.',
-        address: '123 Main Street',
-        city: 'New York',
-        state: 'NY',
-        zipCode: '10001',
-        propertyType: 'APARTMENT',
-        bedrooms: 2,
-        bathrooms: 2,
-        squareFootage: 1200,
-        yearBuilt: 2015,
-        rentAmount: 2500,
-        depositAmount: 2500,
-        availableDate: '2023-08-01',
-        status: 'AVAILABLE',
-        amenities: ['Air Conditioning', 'Heating', 'Washer/Dryer', 'Gym'],
-        isActive: true
-      });
-      
-      setImages([
-        { id: 1, url: 'https://example.com/image1.jpg' },
-        { id: 2, url: 'https://example.com/image2.jpg' }
-      ]);
     } finally {
       setInitialLoading(false);
     }
@@ -215,9 +193,9 @@ const PropertyForm = () => {
     if (e.target.files) {
       const selectedFiles = Array.from(e.target.files);
       
-      // Limit total images to 10
-      if (images.length + newImages.length + selectedFiles.length > 10) {
-        setError('Maximum 10 images allowed. Please remove some images first.');
+      // Limit total images to 5 instead of 10
+      if (images.length + newImages.length + selectedFiles.length > 5) {
+        setError('Maximum 5 images allowed. Please remove some images first.');
         return;
       }
       
@@ -319,21 +297,41 @@ const PropertyForm = () => {
         }
       });
       
-      // Add new images
-      newImages.forEach((image, index) => {
-        formDataObj.append(`images`, image.file);
-      });
+      let response;
       
-      // Add image IDs to delete
-      if (imagesToDelete.length > 0) {
-        formDataObj.append('imagesToDelete', JSON.stringify(imagesToDelete));
+      // First save/update the property without images
+      if (isEditing) {
+        response = await propertyService.updateProperty(id, formData);
+      } else {
+        response = await propertyService.createProperty(formData);
+      }
+
+      const propertyId = isEditing ? id : response.id;
+      
+      // Then handle images separately if we have new ones
+      if (newImages.length > 0) {
+        try {
+          // Upload new images
+          await propertyService.uploadPropertyImages(propertyId, newImages.map(img => img.file));
+        } catch (imgError) {
+          console.error("Error uploading property images:", imgError);
+          setError("Property was saved but there was an error uploading images. Please try again.");
+          setLoading(false);
+          return;
+        }
       }
       
-      let response;
-      if (isEditing) {
-        response = await propertyService.updateProperty(id, formDataObj);
-      } else {
-        response = await propertyService.createProperty(formDataObj);
+      // Handle images to delete
+      if (imagesToDelete.length > 0) {
+        try {
+          // Delete each image
+          for (let i = 0; i < imagesToDelete.length; i++) {
+            await propertyService.deletePropertyImage(propertyId, imagesToDelete[i]);
+          }
+        } catch (deleteError) {
+          console.error("Error deleting property images:", deleteError);
+          // Continue since the property was saved
+        }
       }
       
       setSuccess(`Property ${isEditing ? 'updated' : 'created'} successfully!`);
@@ -344,8 +342,8 @@ const PropertyForm = () => {
           navigate(`/properties/${id}`);
         } else {
           // If we created a new property, go to the list or the new property details
-          if (response.data && response.data.id) {
-            navigate(`/properties/${response.data.id}`);
+          if (propertyId) {
+            navigate(`/properties/${propertyId}`);
           } else {
             navigate('/properties');
           }
@@ -743,7 +741,7 @@ const PropertyForm = () => {
                 Property Images
               </Typography>
               <Typography variant="body2" color="textSecondary" gutterBottom>
-                Upload images of your property. You can upload up to 10 images.
+                Upload images of your property. You can upload up to 5 images.
               </Typography>
             </Grid>
             
@@ -753,7 +751,7 @@ const PropertyForm = () => {
                   variant="outlined"
                   component="label"
                   startIcon={<AddIcon />}
-                  disabled={images.length + newImages.length >= 10}
+                  disabled={images.length + newImages.length >= 5}
                 >
                   Add Images
                   <input
