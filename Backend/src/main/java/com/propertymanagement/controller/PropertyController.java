@@ -23,6 +23,8 @@ import java.util.ArrayList;
 import java.util.Map;
 import java.util.HashMap;
 import java.io.IOException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @RestController
 @RequestMapping("/api/properties")
@@ -32,6 +34,7 @@ public class PropertyController {
     private final UserService userService;
     private final CloudinaryService cloudinaryService;
     private final PropertyMapper mapper;
+    private static final Logger logger = LoggerFactory.getLogger(PropertyController.class);
     
     public PropertyController(PropertyService propertyService, PropertyMapper propertyMapper, 
                              UserService userService, CloudinaryService cloudinaryService) {
@@ -93,15 +96,45 @@ public class PropertyController {
         
         Property property = propertyService.findById(id);
         List<String> uploadedImageUrls = new ArrayList<>();
+        Map<String, Object> response = new HashMap<>();
         
         try {
-            // Limit to max 5 images
+            // Limit to max 5 images total
             int maxImages = 5;
-            int availableSlots = maxImages - (property.getImages() != null ? property.getImages().size() : 0);
+            List<String> currentImages = property.getImages();
+            if (currentImages == null) {
+                currentImages = new ArrayList<>();
+            }
+            
+            int availableSlots = maxImages - currentImages.size();
+            
+            if (availableSlots <= 0) {
+                response.put("success", false);
+                response.put("message", "Maximum number of images (5) already reached. Please delete some images first.");
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+            }
+            
             int toUpload = Math.min(availableSlots, images.size());
             
+            // Process each image
             for (int i = 0; i < toUpload; i++) {
                 MultipartFile image = images.get(i);
+                
+                // Validate file type
+                String contentType = image.getContentType();
+                if (contentType == null || !contentType.startsWith("image/")) {
+                    response.put("success", false);
+                    response.put("message", "Invalid file type. Only images are allowed.");
+                    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+                }
+                
+                // Validate file size (max 5MB)
+                if (image.getSize() > 5 * 1024 * 1024) {
+                    response.put("success", false);
+                    response.put("message", "Image size should be less than 5MB.");
+                    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+                }
+                
                 String base64Image = "data:" + image.getContentType() + ";base64," + 
                                     java.util.Base64.getEncoder().encodeToString(image.getBytes());
                 String imageUrl = cloudinaryService.uploadImage(base64Image, "properties");
@@ -112,23 +145,19 @@ public class PropertyController {
             
             if (!uploadedImageUrls.isEmpty()) {
                 // Add new images to existing ones
-                List<String> currentImages = property.getImages();
-                if (currentImages == null) {
-                    currentImages = new ArrayList<>();
-                }
                 currentImages.addAll(uploadedImageUrls);
                 property.setImages(currentImages);
                 propertyService.updateProperty(id, property);
             }
             
-            Map<String, Object> response = new HashMap<>();
             response.put("success", true);
             response.put("imageUrls", uploadedImageUrls);
             response.put("message", "Images uploaded successfully");
+            response.put("totalImages", currentImages.size());
+            response.put("availableSlots", maxImages - currentImages.size());
             
             return ResponseEntity.ok(response);
         } catch (IOException e) {
-            Map<String, Object> response = new HashMap<>();
             response.put("success", false);
             response.put("message", "Failed to upload images: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
@@ -230,6 +259,54 @@ public class PropertyController {
                 propertyService.countPropertiesByLandlord(currentUser),
                 propertyService.countAvailableProperties()
         );
+    }
+    
+    @PostMapping("/{id}/update-images")
+    public ResponseEntity<Map<String, Object>> updatePropertyImages(
+            @PathVariable("id") Long id,
+            @RequestBody Map<String, List<String>> requestBody) {
+        
+        try {
+            // Get the list of image URLs from the request body
+            List<String> imageUrls = requestBody.get("imageUrls");
+            
+            if (imageUrls == null || imageUrls.isEmpty()) {
+                Map<String, Object> response = new HashMap<>();
+                response.put("success", false);
+                response.put("error", "No image URLs provided");
+                return ResponseEntity.badRequest().body(response);
+            }
+            
+            // Find the property
+            Property property = propertyService.findById(id);
+            
+            if (property == null) {
+                Map<String, Object> response = new HashMap<>();
+                response.put("success", false);
+                response.put("error", "Property not found");
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+            }
+            
+            // Update the property's images
+            property.setImages(imageUrls);
+            propertyService.updateProperty(id, property);
+            
+            // Prepare the response
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("message", "Property images updated successfully");
+            response.put("imageUrls", imageUrls);
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            logger.error("Error updating property images: ", e);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", false);
+            response.put("error", "Failed to update property images: " + e.getMessage());
+            
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
     }
     
     private record PropertyStats(long totalProperties, long availableProperties) {}

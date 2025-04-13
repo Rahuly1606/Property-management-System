@@ -70,6 +70,9 @@ public class AppSecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/public/**").permitAll()
+                .requestMatchers("/api/images/local/**").permitAll()
+                .requestMatchers("/api/images/**").hasAnyRole("LANDLORD", "ADMIN")
+                .requestMatchers("/api/properties/*/images").hasAnyRole("LANDLORD", "ADMIN")
                 .anyRequest().authenticated()
             )
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

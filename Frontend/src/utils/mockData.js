@@ -1,39 +1,32 @@
 /**
- * Utility functions for mock data handling
+ * Mock Data Utilities (Disabled)
+ * 
+ * This file provides stub implementations for backward compatibility.
+ * Mock mode has been disabled in the application.
  */
 
-/**
- * Enable mock data mode for local development
- */
-export const enableMockDataMode = () => {
-  localStorage.setItem('MOCK_API', 'true');
-  console.log('Mock data mode enabled. Refresh the page to see mock data.');
-};
+// These functions now return false or do nothing since mock mode is disabled
+export const isMockDataModeEnabled = () => false;
+export const toggleMockDataMode = () => false;
+export const enableMockDataMode = () => {};
+export const disableMockDataMode = () => {};
 
-/**
- * Disable mock data mode
- */
-export const disableMockDataMode = () => {
-  localStorage.removeItem('MOCK_API');
-  console.log('Mock data mode disabled. Refresh the page to use real API calls.');
-};
+// Returns empty mock data - should not be used
+export const getMockUserProfile = () => ({
+  id: '',
+  firstName: '',
+  lastName: '',
+  email: '',
+  phoneNumber: '',
+  address: '',
+  role: '',
+  profileImage: ''
+});
 
-/**
- * Check if mock data mode is enabled
- */
-export const isMockDataModeEnabled = () => {
-  return localStorage.getItem('MOCK_API') === 'true';
-};
-
-/**
- * Toggle mock data mode
- */
-export const toggleMockDataMode = () => {
-  if (isMockDataModeEnabled()) {
-    disableMockDataMode();
-    return false;
-  } else {
-    enableMockDataMode();
-    return true;
-  }
+export default {
+  isMockDataModeEnabled,
+  toggleMockDataMode,
+  enableMockDataMode,
+  disableMockDataMode,
+  getMockUserProfile
 }; 

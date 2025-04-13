@@ -7,6 +7,7 @@ import authService, {
   isAuthenticated, 
   updateProfile 
 } from '../services/authService';
+import { setupInterceptors } from '../utils/authTokenInterceptor';
 
 const AuthContext = createContext();
 
@@ -19,6 +20,11 @@ export const AuthProvider = ({ children }) => {
   const [userRole, setUserRole] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+
+  // Set up interceptors when the app loads
+  useEffect(() => {
+    setupInterceptors();
+  }, []);
 
   // Check if user is already logged in when app loads
   useEffect(() => {
@@ -51,51 +57,6 @@ export const AuthProvider = ({ children }) => {
       setLoading(true);
       setError('');
       
-      // For development mode, allow test user logins without API
-      const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-      if (isDevelopment && (
-          email === 'admin@example.com' || 
-          email === 'landlord@example.com' || 
-          email === 'tenant@example.com') && 
-          password === 'password') {
-        
-        let role = 'TENANT';
-        let firstName = 'User';
-        let lastName = 'Test';
-        let id = '0';
-        
-        if (email === 'admin@example.com') {
-          role = 'ADMIN';
-          firstName = 'Admin';
-          id = '1';
-        } else if (email === 'landlord@example.com') {
-          role = 'LANDLORD';
-          firstName = 'Landlord';
-          id = '2';
-        } else {
-          role = 'TENANT';
-          firstName = 'Tenant';
-          id = '3';
-        }
-        
-        const userData = { 
-          id, 
-          firstName,
-          lastName, 
-          email,
-          role
-        };
-        
-        localStorage.setItem('token', `mock-jwt-token-for-${role.toLowerCase()}`);
-        localStorage.setItem('user', JSON.stringify(userData));
-        localStorage.setItem('userRole', role);
-        
-        setCurrentUser(userData);
-        setUserRole(role);
-        
-        return { success: true, userData };
-      }
-      
       // Use the login service for real API call
       try {
         const response = await loginService(email, password);
@@ -110,6 +71,10 @@ export const AuthProvider = ({ children }) => {
             
             setCurrentUser(userData);
             setUserRole(userData.role);
+            
+            // Make sure interceptors are set up
+            setupInterceptors();
+            
             return { success: true, userData };
           }
         }
@@ -136,29 +101,6 @@ export const AuthProvider = ({ children }) => {
       setLoading(true);
       setError('');
       
-      // For development mode, allow test registration without API
-      const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-      if (isDevelopment && localStorage.getItem('MOCK_API') === 'true') {
-        await new Promise(resolve => setTimeout(resolve, 500)); // Simulate network delay
-        
-        const newUser = { 
-          id: '4', 
-          firstName: userData.firstName,
-          lastName: userData.lastName, 
-          email: userData.email,
-          role: userData.role || 'TENANT' // Default to tenant role if not specified
-        };
-        
-        localStorage.setItem('token', `mock-jwt-token-for-${newUser.role.toLowerCase()}`);
-        localStorage.setItem('user', JSON.stringify(newUser));
-        localStorage.setItem('userRole', newUser.role);
-        
-        setCurrentUser(newUser);
-        setUserRole(newUser.role);
-        
-        return { success: true, userData: newUser };
-      }
-      
       // Use the register service for real API call
       try {
         const response = await registerService(userData);
@@ -169,14 +111,22 @@ export const AuthProvider = ({ children }) => {
             localStorage.setItem('token', response.data.token);
           }
           
-          // Create user object from response
+          // Create complete user object from response and input data
           const user = {
             id: response.data.id,
-            firstName: response.data.firstName,
-            lastName: response.data.lastName,
-            email: response.data.email,
-            role: response.data.role
+            firstName: response.data.firstName || '',
+            lastName: response.data.lastName || '',
+            email: response.data.email || '',
+            role: response.data.role || 'TENANT',
+            phoneNumber: userData.phoneNumber || response.data.phoneNumber || '',
+            address: userData.address || response.data.address || '',
+            profileImage: response.data.profileImage || '',
+            city: userData.city || response.data.city || '',
+            state: userData.state || response.data.state || '',
+            zipCode: userData.zipCode || response.data.zipCode || ''
           };
+          
+          console.log('Storing complete user data after registration:', user);
           
           // Store in localStorage
           localStorage.setItem('user', JSON.stringify(user));
@@ -209,9 +159,10 @@ export const AuthProvider = ({ children }) => {
     try {
       setLoading(true);
       
-      await logoutService();
+      // Call the logout service
+      const result = await logoutService();
       
-      // Clear state and localStorage
+      // Always clear state and localStorage, even if the server request fails
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       localStorage.removeItem('userRole');
@@ -223,7 +174,16 @@ export const AuthProvider = ({ children }) => {
       return { success: true };
     } catch (error) {
       console.error('Logout error:', error);
-      return { success: false, error: error.message };
+      
+      // Even if there's an error, we still want to clear the client state
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      localStorage.removeItem('userRole');
+      
+      setCurrentUser(null);
+      setUserRole(null);
+      
+      return { success: true, clientSideOnly: true };
     } finally {
       setLoading(false);
     }
@@ -231,73 +191,77 @@ export const AuthProvider = ({ children }) => {
 
   // Update user profile
   const updateUserProfile = async (userData) => {
-    console.log("AuthContext.updateUserProfile called with:", {
-      ...userData,
-      profileImage: userData.profileImage ? 
-        (userData.profileImage === '' ? 'REMOVING_IMAGE' : `IMAGE_DATA (${Math.round(userData.profileImage.length / 1024)}KB)`) 
-        : undefined
-    });
-    
     try {
       setLoading(true);
       setError('');
       
-      // For development mode, allow test profile update without API
-      const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-      if (isDevelopment && localStorage.getItem('MOCK_API') === 'true') {
-        await new Promise(resolve => setTimeout(resolve, 500)); // Simulate network delay
-        
-        // Update local user data
-        const updatedUser = { ...currentUser, ...userData };
-        localStorage.setItem('user', JSON.stringify(updatedUser));
-        
-        if (userData.role && userData.role !== userRole) {
-          setUserRole(userData.role);
-          localStorage.setItem('userRole', userData.role);
-        }
-        
-        setCurrentUser(updatedUser);
-        console.log("Profile updated successfully (mock mode)");
-        return { success: true, userData: updatedUser };
-      }
+      console.log('Updating user profile with data:', userData);
       
-      // Use the update profile service for real API call
+      // Call the profile update service
       try {
-        console.log("Calling updateProfile API...");
         const result = await updateProfile(userData);
-        console.log("API call result:", result);
         
-        if (result.success) {
-          // Get the updated user data
-          const updatedUser = getCurrentUser();
-          console.log("Updated user data:", {
-            ...updatedUser,
-            profileImage: updatedUser.profileImage ? 'IMAGE_URL_PRESENT' : 'NO_IMAGE'
-          });
+        if (result && result.success) {
+          // Get updated user data from result or service
+          const updatedUser = result.data || result.user || getCurrentUser();
           
-          setCurrentUser(updatedUser);
-          
-          if (updatedUser.role && updatedUser.role !== userRole) {
-            setUserRole(updatedUser.role);
-            localStorage.setItem('userRole', updatedUser.role);
+          // Make sure user data in localStorage is updated
+          if (updatedUser) {
+            const currentUserData = getCurrentUser();
+            const newUserData = {
+              ...currentUserData,
+              firstName: updatedUser.firstName || currentUserData.firstName,
+              lastName: updatedUser.lastName || currentUserData.lastName,
+              // Use the values directly from the userData to ensure empty strings are properly handled
+              phoneNumber: userData.phoneNumber !== undefined ? userData.phoneNumber : (updatedUser.phoneNumber || currentUserData.phoneNumber),
+              address: userData.address !== undefined ? userData.address : (updatedUser.address || currentUserData.address),
+              profileImage: updatedUser.profileImage || currentUserData.profileImage
+            };
+            
+            console.log('Updating user data in context after API update:', newUserData);
+            
+            // Update localStorage
+            localStorage.setItem('user', JSON.stringify(newUserData));
+            
+            // Update context state
+            setCurrentUser(newUserData);
+            
+            return { 
+              success: true, 
+              user: newUserData 
+            };
           }
           
-          return { success: true, userData: updatedUser };
+          // If no user data in result, refresh from localStorage
+          const refreshedUser = getCurrentUser();
+          setCurrentUser(refreshedUser);
+          
+          return { 
+            success: true, 
+            user: refreshedUser 
+          };
         } else {
-          console.error("Profile update failed with error:", result.error);
-          setError(result.error || 'Failed to update profile');
-          return { success: false, error: result.error || 'Failed to update profile' };
+          setError(result?.error || 'Profile update failed');
+          return { 
+            success: false, 
+            error: result?.error || 'Profile update failed' 
+          };
         }
       } catch (apiError) {
         console.error('Profile update API error:', apiError);
-        const errorMessage = apiError.response?.data?.message || 'Failed to update profile';
-        setError(errorMessage);
-        return { success: false, error: errorMessage };
+        setError(apiError.message || 'Failed to update profile');
+        return { 
+          success: false, 
+          error: apiError.message || 'Failed to update profile' 
+        };
       }
     } catch (error) {
       console.error('Profile update error:', error);
-      setError(error.message || 'An unexpected error occurred');
-      return { success: false, error: error.message || 'An unexpected error occurred' };
+      setError(error.message || 'Failed to update profile');
+      return { 
+        success: false, 
+        error: error.message || 'Failed to update profile' 
+      };
     } finally {
       setLoading(false);
     }

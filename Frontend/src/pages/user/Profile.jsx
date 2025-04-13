@@ -5,12 +5,12 @@ import authService from '../../services/authService';
 import { 
   FaUser, FaEnvelope, FaPhone, FaHome, FaLock, FaEdit, 
   FaSave, FaTimes, FaShieldAlt, FaIdCard, FaBuilding,
-  FaCamera, FaTrash
+  FaCamera, FaTrash, FaUserTie, FaCalendarAlt
 } from 'react-icons/fa';
 import './Profile.css';
 
 const Profile = () => {
-  const { currentUser, updateProfile } = useAuth();
+  const { currentUser, updateUserProfile } = useAuth();
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
   
@@ -45,46 +45,69 @@ const Profile = () => {
   
   const fetchUserProfile = async () => {
     setLoading(true);
+    
     try {
-      // Always fetch fresh data from the API to ensure we have the latest values
+      // Initialize profile data from localStorage first
+      const localUser = authService.getCurrentUser();
+      if (localUser) {
+        console.log("Initial profile data from localStorage:", localUser);
+        setProfileData({
+          id: localUser.id || '',
+          firstName: localUser.firstName || '',
+          lastName: localUser.lastName || '',
+          email: localUser.email || '',
+          phoneNumber: localUser.phoneNumber || '',
+          address: localUser.address || '',
+          role: localUser.role || '',
+          profileImage: localUser.profileImage || ''
+        });
+      }
+      
+      // Then try API to get the latest data
       try {
         const response = await authService.getUserProfile();
         if (response) {
-          console.log("Fetched profile data:", {
-            ...response,
-            profileImage: response.profileImage ? 'IMAGE_URL_PRESENT' : 'NO_IMAGE'
-          });
-          setProfileData({
-            id: response.id || '',
-            firstName: response.firstName || '',
-            lastName: response.lastName || '',
-            email: response.email || '',
-            phoneNumber: response.phoneNumber || '',
-            address: response.address || '',
-            role: response.role || '',
-            profileImage: response.profileImage || ''
-          });
+          console.log("Fetched profile data from API:", response);
+          setProfileData(prevData => ({
+            ...prevData,
+            id: response.id || prevData.id,
+            firstName: response.firstName || prevData.firstName,
+            lastName: response.lastName || prevData.lastName,
+            email: response.email || prevData.email,
+            phoneNumber: response.phoneNumber || prevData.phoneNumber,
+            address: response.address || prevData.address,
+            role: response.role || prevData.role,
+            profileImage: response.profileImage || prevData.profileImage
+          }));
+          
+          // Update localStorage to keep it synced with server data
+          const currentUser = authService.getCurrentUser();
+          if (currentUser) {
+            const updatedUser = {
+              ...currentUser,
+              firstName: response.firstName || currentUser.firstName,
+              lastName: response.lastName || currentUser.lastName,
+              email: response.email || currentUser.email,
+              phoneNumber: response.phoneNumber || currentUser.phoneNumber,
+              address: response.address || currentUser.address,
+              profileImage: response.profileImage || currentUser.profileImage
+            };
+            console.log("Updating localStorage with fresh API data:", updatedUser);
+            localStorage.setItem('user', JSON.stringify(updatedUser));
+          }
         }
       } catch (apiError) {
-        console.error("Error fetching user profile:", apiError);
-        setError("Failed to load profile. Please try again later.");
-        
-        // Fallback to cached data if API fails
-        if (currentUser) {
-          setProfileData({
-            id: currentUser.id || '',
-            firstName: currentUser.firstName || '',
-            lastName: currentUser.lastName || '',
-            email: currentUser.email || '',
-            phoneNumber: currentUser.phoneNumber || '',
-            address: currentUser.address || '',
-            role: currentUser.role || '',
-            profileImage: currentUser.profileImage || ''
-          });
+        console.error("Error fetching user profile from API:", apiError);
+        console.warn("Using localStorage data as primary source");
+        // Already loaded from localStorage, so just show a message
+        if (error === '') {
+          setError("Could not refresh profile data from server. Using saved data.");
+          // Auto-hide error after 5 seconds
+          setTimeout(() => setError(''), 5000);
         }
       }
     } catch (err) {
-      console.error("Error in profile loading:", err);
+      console.error("Critical error in profile loading:", err);
       setError("An unexpected error occurred. Please try again.");
     } finally {
       setLoading(false);
@@ -167,7 +190,7 @@ const Profile = () => {
     }
     
     try {
-      // Call API to update profile
+      // Prepare update data
       const updateData = {
         firstName: profileData.firstName,
         lastName: profileData.lastName,
@@ -179,11 +202,7 @@ const Profile = () => {
       if (photoPreview) {
         try {
           const compressedImage = await compressImageData(photoPreview);
-          console.log("Image compressed successfully", {
-            before: photoPreview.length,
-            after: compressedImage.length,
-            reduction: ((1 - compressedImage.length / photoPreview.length) * 100).toFixed(2) + '%'
-          });
+          console.log("Image compressed successfully");
           updateData.profileImage = compressedImage;
         } catch (compressionError) {
           console.warn("Image compression failed, using original:", compressionError);
@@ -194,27 +213,36 @@ const Profile = () => {
         updateData.profileImage = '';
       }
       
-      console.log('Saving profile with data:', { 
-        ...updateData, 
-        profileImage: updateData.profileImage ? 
-          (updateData.profileImage === '' ? 'REMOVING IMAGE' : 
-           `IMAGE DATA PRESENT (${Math.round(updateData.profileImage.length / 1024)}KB)`) 
-          : 'NO CHANGE' 
-      });
-      
       setLoading(true);
-      const result = await updateProfile(updateData);
+      
+      // Update profile through the Auth context
+      console.log("Sending profile update with data:", updateData);
+      const result = await updateUserProfile(updateData);
       
       if (result && result.success) {
+        console.log("Profile updated successfully with result:", result);
         setSuccess('Profile updated successfully');
         setIsEditing(false);
         setPhotoPreview('');
         
-        // Fetch fresh user data instead of reloading the page
+        // Make sure to update the local profile data with the updated user data
+        if (result.user) {
+          setProfileData(prevData => ({
+            ...prevData,
+            firstName: result.user.firstName || prevData.firstName,
+            lastName: result.user.lastName || prevData.lastName,
+            phoneNumber: result.user.phoneNumber,
+            address: result.user.address,
+            profileImage: result.user.profileImage || prevData.profileImage
+          }));
+        }
+        
+        // Fetch fresh user data
         await fetchUserProfile();
       } else {
-        setError(result?.error || 'Failed to update profile. Please try again.');
-        console.error('Profile update failed:', result?.error);
+        const errorMsg = result?.error || 'Failed to update profile. Please try again.';
+        setError(errorMsg);
+        console.error('Profile update failed:', errorMsg);
       }
     } catch (err) {
       console.error('Error updating profile:', err);
@@ -248,11 +276,10 @@ const Profile = () => {
             const canvas = document.createElement('canvas');
             canvas.width = width;
             canvas.height = height;
-            
             const ctx = canvas.getContext('2d');
             ctx.drawImage(img, 0, 0, width, height);
             
-            // Get compressed data URL (0.8 quality)
+            // Get compressed data URL (JPEG at 80% quality)
             const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.8);
             resolve(compressedDataUrl);
           } catch (err) {
@@ -291,8 +318,6 @@ const Profile = () => {
         newPassword: passwordData.newPassword
       });
       
-      console.log("Password change response:", response);
-      
       setSuccess('Password changed successfully');
       setIsChangingPassword(false);
       setPasswordData({
@@ -327,8 +352,6 @@ const Profile = () => {
         return;
       }
       
-      console.log("File selected:", file.name, "Type:", file.type, "Size:", file.size);
-      
       // Validate file type
       if (!file.type.match('image.*')) {
         setError('Please select an image file (jpeg, png, etc.)');
@@ -349,7 +372,6 @@ const Profile = () => {
       reader.onload = (e) => {
         try {
           const imageData = e.target.result;
-          console.log("Image loaded successfully, data length:", imageData.length);
           setPhotoPreview(imageData);
           setIsUploading(false);
         } catch (err) {
@@ -401,7 +423,7 @@ const Profile = () => {
     }
   };
   
-  if (loading) {
+  if (loading && !profileData.firstName) {
     return <div className="profile-loading">Loading profile...</div>;
   }
   
@@ -511,12 +533,21 @@ const Profile = () => {
                   
                   <div className="profile-field">
                     <span className="profile-label"><FaPhone /> Phone:</span>
-                    <span className="profile-value">{profileData.phoneNumber || 'Not provided'}</span>
+                    <span className="profile-value">
+                      {profileData.phoneNumber ? profileData.phoneNumber : 'Not provided'}
+                    </span>
                   </div>
                   
                   <div className="profile-field">
                     <span className="profile-label"><FaHome /> Address:</span>
-                    <span className="profile-value">{profileData.address || 'Not provided'}</span>
+                    <span className="profile-value">
+                      {profileData.address ? profileData.address : 'Not provided'}
+                    </span>
+                  </div>
+
+                  <div className="profile-field">
+                    <span className="profile-label"><FaUserTie /> Role:</span>
+                    <span className="profile-value">{profileData.role}</span>
                   </div>
                 </div>
               </div>
@@ -576,7 +607,7 @@ const Profile = () => {
                     id="phoneNumber"
                     name="phoneNumber"
                     className="form-control"
-                    value={profileData.phoneNumber}
+                    value={profileData.phoneNumber || ''}
                     onChange={handleInputChange}
                     placeholder="Enter your phone number"
                   />
@@ -591,15 +622,15 @@ const Profile = () => {
                     id="address"
                     name="address"
                     className="form-control"
-                    value={profileData.address}
+                    value={profileData.address || ''}
                     onChange={handleInputChange}
                     placeholder="Enter your address"
                   />
                 </div>
                 
                 <div className="form-actions">
-                  <button type="submit" className="btn btn-save">
-                    <FaSave /> Save Changes
+                  <button type="submit" className="btn btn-save" disabled={loading}>
+                    {loading ? 'Saving...' : <><FaSave /> Save Changes</>}
                   </button>
                   <button type="button" className="btn btn-cancel" onClick={toggleEditMode}>
                     <FaTimes /> Cancel
@@ -694,8 +725,8 @@ const Profile = () => {
                 </div>
                 
                 <div className="form-actions">
-                  <button type="submit" className="btn btn-save">
-                    <FaSave /> Update Password
+                  <button type="submit" className="btn btn-save" disabled={loading}>
+                    {loading ? 'Updating...' : <><FaSave /> Update Password</>}
                   </button>
                   <button type="button" className="btn btn-cancel" onClick={togglePasswordMode}>
                     <FaTimes /> Cancel

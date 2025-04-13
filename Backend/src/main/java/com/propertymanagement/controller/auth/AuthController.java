@@ -20,6 +20,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import java.util.HashMap;
+import java.util.Map;
+import org.springframework.http.HttpStatus;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -111,6 +114,29 @@ public class AuthController {
         } catch (Exception e) {
             logger.error("Registration failed: {}", e.getMessage(), e);
             throw new RuntimeException("Registration failed: " + e.getMessage(), e);
+        }
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<Map<String, Object>> logoutUser() {
+        try {
+            // Clear the security context
+            SecurityContextHolder.clearContext();
+            logger.info("User logged out successfully");
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("message", "Logged out successfully");
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            logger.error("Error during logout: {}", e.getMessage(), e);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", false);
+            response.put("error", "Failed to logout: " + e.getMessage());
+            
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
 } 

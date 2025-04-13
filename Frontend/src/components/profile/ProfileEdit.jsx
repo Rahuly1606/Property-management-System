@@ -89,6 +89,8 @@ const ProfileEdit = () => {
     setLoading(true);
     try {
       const userData = await authService.getUserProfile();
+      console.log("Fetched user profile data:", userData);
+      
       if (userData) {
         setProfileData({
           firstName: userData.firstName || '',
@@ -102,27 +104,42 @@ const ProfileEdit = () => {
           bio: userData.bio || ''
         });
         
-        // If there's an avatar URL
-        if (userData.avatarUrl) {
-          setAvatarPreview(userData.avatarUrl);
+        // If there's a profile image URL
+        if (userData.profileImage) {
+          console.log("Setting avatar preview from profile image:", userData.profileImage);
+          setAvatarPreview(userData.profileImage);
         }
+      } else {
+        console.warn("User data is empty or undefined");
       }
     } catch (err) {
       console.error('Error fetching user profile:', err);
       setProfileError('Failed to load profile. Please try again.');
       
-      // Sample data for development
-      setProfileData({
-        firstName: 'John',
-        lastName: 'Doe',
-        email: 'john.doe@example.com',
-        phoneNumber: '555-123-4567',
-        address: '123 Main St',
-        city: 'New York',
-        state: 'NY',
-        zipCode: '10001',
-        bio: 'I am a tenant looking for great properties.'
-      });
+      // Fallback to current user in localStorage if API fails
+      try {
+        const currentUser = authService.getCurrentUser();
+        if (currentUser) {
+          console.log("Using local storage user data as fallback:", currentUser);
+          setProfileData({
+            firstName: currentUser.firstName || '',
+            lastName: currentUser.lastName || '',
+            email: currentUser.email || '',
+            phoneNumber: currentUser.phoneNumber || '',
+            address: currentUser.address || '',
+            city: currentUser.city || '',
+            state: currentUser.state || '',
+            zipCode: currentUser.zipCode || '',
+            bio: currentUser.bio || ''
+          });
+          
+          if (currentUser.profileImage) {
+            setAvatarPreview(currentUser.profileImage);
+          }
+        }
+      } catch (fallbackErr) {
+        console.error('Fallback error:', fallbackErr);
+      }
     } finally {
       setLoading(false);
     }
@@ -153,10 +170,21 @@ const ProfileEdit = () => {
       const file = e.target.files[0];
       setAvatarFile(file);
       
+      // Check file size
+      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+        setProfileError('Image size should not exceed 5MB');
+        return;
+      }
+      
       // Create preview URL for displaying the image
       const reader = new FileReader();
       reader.onloadend = () => {
         setAvatarPreview(reader.result);
+        console.log("Avatar preview set with file:", file.name);
+      };
+      reader.onerror = () => {
+        console.error("Error reading file");
+        setProfileError("Error reading image file");
       };
       reader.readAsDataURL(file);
     }
@@ -208,13 +236,17 @@ const ProfileEdit = () => {
     setSavingProfile(true);
     
     try {
+      console.log("Saving profile with data:", profileData);
+      
       // Create FormData if avatar is being updated
       if (avatarFile) {
         const formData = new FormData();
         
         // Append all profile fields
         Object.keys(profileData).forEach(key => {
-          formData.append(key, profileData[key]);
+          if (profileData[key]) {
+            formData.append(key, profileData[key]);
+          }
         });
         
         // Append avatar file
@@ -233,9 +265,14 @@ const ProfileEdit = () => {
       const updatedUser = {
         ...currentUser,
         firstName: profileData.firstName,
-        lastName: profileData.lastName
+        lastName: profileData.lastName,
+        phoneNumber: profileData.phoneNumber,
+        address: profileData.address
       };
       localStorage.setItem('user', JSON.stringify(updatedUser));
+      
+      // Refresh user data from the API
+      await fetchUserProfile();
       
       // Clear success message after some time
       setTimeout(() => setSuccess(null), 3000);

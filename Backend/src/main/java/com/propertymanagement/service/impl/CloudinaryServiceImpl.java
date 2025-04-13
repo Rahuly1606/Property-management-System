@@ -7,10 +7,20 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
+import org.springframework.web.multipart.MultipartFile;
 
 import jakarta.annotation.PostConstruct;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Base64;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -29,110 +39,170 @@ public class CloudinaryServiceImpl implements CloudinaryService {
     @Value("${cloudinary.api-secret}")
     private String apiSecret;
     
+    @Value("${cloudinary.timeout:60000}")
+    private int timeout;
+    
+    // Local file storage configuration
+    @Value("${app.local-storage.enabled:true}")
+    private boolean localStorageEnabled;
+    
+    @Value("${app.local-storage.path:./uploads}")
+    private String localStoragePath;
+    
+    @Value("${app.server.base-url:http://localhost:8080}")
+    private String serverBaseUrl;
+    
     private Cloudinary cloudinary;
     
     @PostConstruct
     public void init() {
-        cloudinary = new Cloudinary(ObjectUtils.asMap(
-                "cloud_name", cloudName,
-                "api_key", apiKey,
-                "api_secret", apiSecret,
-                "secure", true
-        ));
+        try {
+            // Debug: log out config values (securely)
+            logger.info("Initializing Cloudinary with cloud name: {}, API key length: {}, API secret: {}",
+                    cloudName,
+                    apiKey != null ? apiKey.length() : "null",
+                    apiSecret != null ? "[HIDDEN]" : "null");
+            
+            if (StringUtils.isEmpty(cloudName) || StringUtils.isEmpty(apiKey) || StringUtils.isEmpty(apiSecret)) {
+                logger.error("Cloudinary configuration is incomplete. Check application.properties for cloudinary.cloud-name, cloudinary.api-key, and cloudinary.api-secret");
+                return;
+            }
+            
+            Map<String, Object> config = new HashMap<>();
+            config.put("cloud_name", cloudName);
+            config.put("api_key", apiKey);
+            config.put("api_secret", apiSecret);
+            config.put("secure", true);
+            
+            // Add connection and read timeout settings
+            Map<String, Integer> timeouts = new HashMap<>();
+            timeouts.put("connect_timeout", timeout);
+            timeouts.put("read_timeout", timeout);
+            config.put("connection_timeout", timeout);
+            config.put("timeout", timeout);
+            
+            cloudinary = new Cloudinary(config);
+            logger.info("Cloudinary initialized successfully");
+            
+            // Test connection
+            try {
+                Map result = cloudinary.api().ping(ObjectUtils.emptyMap());
+                logger.info("Cloudinary connection test successful: {}", result);
+            } catch (Exception e) {
+                logger.error("Cloudinary connection test failed: {}", e.getMessage());
+                // We don't want to throw an exception here, just log it
+            }
+        } catch (Exception e) {
+            logger.error("Failed to initialize Cloudinary: {}", e.getMessage(), e);
+        }
     }
     
     @Override
     public String uploadImage(String base64Image, String folder) {
+        if (cloudinary == null) {
+            logger.error("Cloudinary not initialized properly. Check your configuration.");
+            return null;
+        }
+        
+        if (base64Image == null || base64Image.isEmpty()) {
+            logger.warn("Base64 image data is null or empty");
+            return null;
+        }
+        
         try {
-            if (base64Image == null || base64Image.isEmpty()) {
-                logger.warn("Base64 image data is null or empty");
-                return null;
-            }
+            logger.debug("Starting image upload to Cloudinary");
             
+            // Track values for debugging
+            logger.debug("Cloud name: {}, API key length: {}, API secret: {}", 
+                cloudName, 
+                apiKey != null ? apiKey.length() : "null", 
+                apiSecret != null ? (apiSecret.length() > 4 ? apiSecret.substring(0, 4) + "..." : apiSecret) : "null");
+            
+            // Process the base64 string
             String imageData = base64Image;
-            // Remove the "data:image/jpeg;base64," part if present
-            if (imageData.contains(",")) {
+            if (base64Image.contains(",")) {
                 logger.debug("Base64 image contains data URL prefix, removing it");
-                imageData = imageData.substring(imageData.indexOf(",") + 1);
+                imageData = base64Image.substring(base64Image.indexOf(",") + 1);
             }
             
-            logger.debug("Preparing to upload image to Cloudinary, folder: {}", folder);
-            logger.debug("Base64 image length: {}", imageData.length());
+            // Log a small sample of the image data for debugging
+            String dataSample = imageData.length() > 20 ? imageData.substring(0, 20) + "..." : imageData;
+            logger.debug("Image data sample: {}, Length: {}", dataSample, imageData.length());
             
+            Map<String, Object> options = ObjectUtils.asMap(
+                "folder", (folder != null && !folder.isEmpty()) ? folder : "uploads",
+                "resource_type", "auto",
+                "unique_filename", true
+            );
+            
+            logger.debug("Uploading to Cloudinary folder: {}", options.get("folder"));
+            
+            // First attempt - direct base64 string
             try {
-                logger.debug("Attempting to upload image using primary method");
-                // Try direct upload with raw data
-                Map<String, Object> params = ObjectUtils.asMap(
-                        "folder", folder != null ? folder : "users",
-                        "resource_type", "auto"
-                );
-                
-                Map uploadResult = cloudinary.uploader().upload(imageData, params);
+                logger.debug("Attempting first upload method (direct base64)");
+                Map uploadResult = cloudinary.uploader().upload(imageData, options);
                 String secureUrl = (String) uploadResult.get("secure_url");
-                
-                logger.debug("Image uploaded successfully to Cloudinary: {}", secureUrl);
+                logger.info("Image uploaded to Cloudinary successfully: {}", secureUrl);
                 return secureUrl;
             } catch (Exception e) {
-                logger.error("Error during cloudinary upload with first method", e);
+                logger.warn("First upload attempt failed: {} - {}", e.getClass().getName(), e.getMessage());
                 
-                // Try second approach with data URI
-                logger.debug("Attempting second upload method");
+                // Second attempt - try with data URI format
                 try {
-                    Map<String, Object> params = ObjectUtils.asMap(
-                            "folder", folder != null ? folder : "users",
-                            "resource_type", "image"
-                    );
-                    
-                    Map uploadResult = cloudinary.uploader().upload(
-                            "data:image/jpeg;base64," + imageData, 
-                            params
-                    );
+                    logger.debug("Attempting second upload method (data URI)");
+                    String dataUri = "data:image/jpeg;base64," + imageData;
+                    Map uploadResult = cloudinary.uploader().upload(dataUri, options);
                     String secureUrl = (String) uploadResult.get("secure_url");
-                    
-                    logger.debug("Image uploaded successfully with second method: {}", secureUrl);
+                    logger.info("Image uploaded to Cloudinary using data URI: {}", secureUrl);
                     return secureUrl;
                 } catch (Exception e2) {
-                    logger.error("Error with second upload method", e2);
+                    logger.warn("Second upload attempt failed: {} - {}", e2.getClass().getName(), e2.getMessage());
                     
-                    // Try third approach - converting to bytes
+                    // Third attempt - try with byte array
                     try {
-                        byte[] imageBytes = java.util.Base64.getDecoder().decode(imageData);
-                        
-                        Map<String, Object> params = ObjectUtils.asMap(
-                                "folder", folder != null ? folder : "users",
-                                "resource_type", "auto"
-                        );
-                        
-                        Map uploadResult = cloudinary.uploader().upload(imageBytes, params);
+                        logger.debug("Attempting third upload method (byte array)");
+                        byte[] imageBytes = Base64.getDecoder().decode(imageData);
+                        logger.debug("Decoded base64 to byte array, length: {}", imageBytes.length);
+                        Map uploadResult = cloudinary.uploader().upload(imageBytes, options);
                         String secureUrl = (String) uploadResult.get("secure_url");
-                        
-                        logger.debug("Image uploaded successfully with third method: {}", secureUrl);
+                        logger.info("Image uploaded to Cloudinary using byte array: {}", secureUrl);
                         return secureUrl;
                     } catch (Exception e3) {
-                        logger.error("All upload methods failed", e3);
+                        logger.error("All upload attempts failed. Final error: {} - {}", e3.getClass().getName(), e3.getMessage());
+                        // Try to identify if it's credentials issue
+                        if (e3.getMessage() != null && 
+                           (e3.getMessage().contains("authentication") || 
+                            e3.getMessage().contains("Invalid") || 
+                            e3.getMessage().contains("signature"))) {
+                            logger.error("Possible authentication issue with Cloudinary. Please check your credentials.");
+                        }
                         return null;
                     }
                 }
             }
         } catch (Exception e) {
-            logger.error("Error uploading image to Cloudinary", e);
+            logger.error("Error in uploadImage method: {} - {}", e.getClass().getName(), e.getMessage(), e);
             return null;
         }
     }
     
     @Override
     public boolean deleteImage(String publicId) {
+        if (cloudinary == null) {
+            logger.error("Cloudinary not initialized properly. Check your configuration.");
+            return false;
+        }
+        
+        if (publicId == null || publicId.isEmpty()) {
+            logger.warn("Public ID is null or empty");
+            return false;
+        }
+        
         try {
-            if (publicId == null || publicId.isEmpty()) {
-                return false;
-            }
-            
             Map result = cloudinary.uploader().destroy(publicId, ObjectUtils.emptyMap());
             String status = (String) result.get("result");
-            
-            logger.debug("Deleted image from Cloudinary with status: {}", status);
+            logger.info("Image deletion result: {}", status);
             return "ok".equals(status);
-            
         } catch (IOException e) {
             logger.error("Error deleting image from Cloudinary", e);
             return false;
@@ -145,10 +215,71 @@ public class CloudinaryServiceImpl implements CloudinaryService {
             return null;
         }
         
-        // Extract public ID from URL using regex
         Matcher matcher = PUBLIC_ID_PATTERN.matcher(url);
         if (matcher.find()) {
-            return matcher.group(1);
+            String publicId = matcher.group(1);
+            logger.debug("Extracted public ID from URL: {}", publicId);
+            return publicId;
+        }
+        
+        logger.warn("Could not extract public ID from URL: {}", url);
+        return null;
+    }
+    
+    @Override
+    public boolean isCloudinaryAvailable() {
+        if (cloudinary == null) {
+            logger.error("Cloudinary not initialized");
+            return false;
+        }
+        
+        try {
+            // Ping Cloudinary service to verify credentials are working
+            Map result = cloudinary.api().ping(ObjectUtils.emptyMap());
+            logger.info("Cloudinary ping result: {}", result);
+            
+            // If status is "ok", Cloudinary is available
+            return "ok".equals(result.get("status"));
+        } catch (Exception e) {
+            logger.error("Failed to check Cloudinary availability: {}", e.getMessage(), e);
+            return false;
+        }
+    }
+
+    @Override
+    public String uploadFile(MultipartFile file, String folder) {
+        if (cloudinary == null) {
+            logger.error("Cloudinary not initialized");
+            return null;
+        }
+        
+        if (file == null || file.isEmpty()) {
+            logger.error("Cannot upload empty file");
+            return null;
+        }
+        
+        try {
+            logger.info("Starting file upload to Cloudinary, file size: {} bytes", file.getSize());
+            
+            // Prepare upload parameters
+            Map<String, Object> params = new HashMap<>();
+            if (folder != null && !folder.isEmpty()) {
+                params.put("folder", folder);
+            }
+            params.put("resource_type", "auto"); // Auto-detect resource type
+            
+            // Upload the file directly
+            Map uploadResult = cloudinary.uploader().upload(file.getBytes(), params);
+            
+            // Get the secure URL from the response
+            String secureUrl = (String) uploadResult.get("secure_url");
+            logger.info("File successfully uploaded to Cloudinary. URL: {}", secureUrl);
+            
+            return secureUrl;
+        } catch (IOException e) {
+            logger.error("IO error when uploading file to Cloudinary: {}", e.getMessage(), e);
+        } catch (Exception e) {
+            logger.error("Error uploading file to Cloudinary: {}", e.getMessage(), e);
         }
         
         return null;

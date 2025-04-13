@@ -16,6 +16,7 @@ const PropertyForm = () => {
   const { id } = useParams();
   const isEditing = !!id;
   const fileInputRef = useRef(null);
+  const multipleFileInputRef = useRef(null);
   
   const [loading, setLoading] = useState(false);
   const [loadingProperty, setLoadingProperty] = useState(isEditing);
@@ -44,6 +45,9 @@ const PropertyForm = () => {
   const [newAmenity, setNewAmenity] = useState('');
   const [imageUploading, setImageUploading] = useState(false);
   const [imagePreview, setImagePreview] = useState('');
+  const [multipleFiles, setMultipleFiles] = useState([]);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [remainingSlots, setRemainingSlots] = useState(5);
   
   useEffect(() => {
     // Redirect if not a landlord
@@ -100,6 +104,16 @@ const PropertyForm = () => {
     fetchProperty();
   }, [id, isEditing, isLandlord, navigate]);
   
+  useEffect(() => {
+    // Calculate remaining image slots whenever property.images changes
+    if (property && property.images) {
+      const slots = 5 - property.images.length;
+      setRemainingSlots(slots > 0 ? slots : 0);
+    } else {
+      setRemainingSlots(5);
+    }
+  }, [property.images]);
+  
   const propertyTypes = propertyService.getPropertyTypes();
   
   const handleInputChange = (e) => {
@@ -142,69 +156,162 @@ const PropertyForm = () => {
   
   // Image handling
   const handleImageClick = () => {
+    if (remainingSlots <= 0) {
+      setError('Maximum number of images (5) already reached. Please delete some images first.');
+      return;
+    }
     fileInputRef.current.click();
   };
   
   const handleImageChange = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+    const files = Array.from(e.target.files);
+    if (!files.length) return;
     
-    // Validate file type
-    if (!file.type.match('image.*')) {
-      setError('Please select an image file (jpeg, png, etc.)');
+    // Clear any previous errors
+    setError('');
+    
+    // Check if we're exceeding the limit
+    if (files.length > remainingSlots) {
+      setError(`You can only upload ${remainingSlots} more image(s). ${files.length} selected.`);
       return;
     }
     
-    // Validate file size (max 5MB)
-    const maxSize = 5 * 1024 * 1024; // 5MB
-    if (file.size > maxSize) {
-      setError(`Image size should be less than 5MB. Your file is ${(file.size / 1024 / 1024).toFixed(2)}MB`);
-      return;
+    // Validate files
+    const validFiles = [];
+    const invalidFiles = [];
+    
+    for (const file of files) {
+      // Validate file type
+      if (!file.type.match('image.*')) {
+        invalidFiles.push(`${file.name} is not an image file`);
+        continue;
+      }
+      
+      // Validate file size (max 5MB)
+      const maxSize = 5 * 1024 * 1024; // 5MB
+      if (file.size > maxSize) {
+        invalidFiles.push(`${file.name} exceeds 5MB limit (${(file.size / 1024 / 1024).toFixed(2)}MB)`);
+        continue;
+      }
+      
+      validFiles.push(file);
     }
+    
+    if (invalidFiles.length > 0) {
+      setError(`Some files couldn't be added: ${invalidFiles.join(', ')}`);
+    }
+    
+    if (validFiles.length === 0) return;
     
     try {
       setImageUploading(true);
       
-      // Preview image
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setImagePreview(e.target.result);
-      };
-      reader.readAsDataURL(file);
+      // For single file upload, set preview
+      if (validFiles.length === 1) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          setImagePreview(e.target.result);
+        };
+        reader.readAsDataURL(validFiles[0]);
+      } else {
+        // For multiple files, store them for batch upload
+        setMultipleFiles(validFiles);
+        // Clear any single file preview
+        setImagePreview('');
+      }
       
+      setImageUploading(false);
     } catch (err) {
-      console.error('Error processing image:', err);
-      setError('Failed to process the image');
+      console.error('Error processing images:', err);
+      setError('Failed to process the images');
       setImageUploading(false);
     }
   };
   
   const handleImageUpload = async () => {
-    if (!imagePreview) return;
+    if (!imagePreview && multipleFiles.length === 0) return;
     
     try {
       setImageUploading(true);
       setError('');
       
-      // Upload the image
-      const imageUrl = await propertyService.uploadPropertyImage(imagePreview);
+      // Provide information about the upload process
+      setSuccess('Uploading image(s) to Cloudinary...');
       
-      // Add to images array
-      setProperty(prev => ({
-        ...prev,
-        images: [...prev.images, imageUrl]
-      }));
-      
-      // Reset preview
-      setImagePreview('');
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
+      // Single image upload
+      if (imagePreview && !multipleFiles.length) {
+        try {
+          const imageUrl = await propertyService.uploadPropertyImage(imagePreview);
+          
+          // Add to images array
+          setProperty(prev => ({
+            ...prev,
+            images: [...prev.images, imageUrl]
+          }));
+          
+          // Reset preview
+          setImagePreview('');
+          if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+          }
+          
+          setSuccess('Image uploaded successfully to Cloudinary!');
+        } catch (err) {
+          console.warn('Error in single image upload:', err);
+          setError('Image upload encountered an issue, but we\'ve added a placeholder instead.');
+          
+          // Still add a placeholder image to allow the user to continue
+          const placeholderUrl = propertyService.getPlaceholderImageUrl();
+          setProperty(prev => ({
+            ...prev,
+            images: [...prev.images, placeholderUrl]
+          }));
+        }
+      } 
+      // Multiple image upload
+      else if (multipleFiles.length > 0) {
+        try {
+          setUploadProgress(10); // Show initial progress
+          const result = await propertyService.uploadPropertyImages(property.id, multipleFiles);
+          setUploadProgress(100); // Complete progress
+          
+          if (result && result.imageUrls) {
+            // Add all URLs to the property images
+            setProperty(prev => ({
+              ...prev,
+              images: [...prev.images, ...result.imageUrls]
+            }));
+            
+            // Reset file input and progress
+            if (multipleFileInputRef.current) {
+              multipleFileInputRef.current.value = '';
+            }
+            setMultipleFiles([]);
+            setSuccess(`${result.imageUrls.length} images uploaded successfully. ${result.message || ''}`);
+          } else {
+            setError('Unexpected response format from image upload service.');
+          }
+        } catch (err) {
+          console.warn('Error in multiple image upload:', err);
+          setError('Image upload service encountered an issue, but we\'ve added placeholders instead.');
+          
+          // Still add placeholder images to allow the user to continue
+          const placeholderUrls = multipleFiles.map(() => propertyService.getPlaceholderImageUrl());
+          setProperty(prev => ({
+            ...prev,
+            images: [...prev.images, ...placeholderUrls]
+          }));
+        }
       }
-    } catch (err) {
-      console.error('Error uploading image:', err);
-      setError('Failed to upload image. Please try again.');
-    } finally {
+      
+      // Reset upload state
+      setUploadProgress(0);
       setImageUploading(false);
+    } catch (error) {
+      console.error('Error during image upload process:', error);
+      setError('There was a problem with the image upload. Placeholders have been used instead.');
+      setImageUploading(false);
+      setUploadProgress(0);
     }
   };
   
@@ -653,60 +760,118 @@ const PropertyForm = () => {
         <div className="form-section">
           <h2><FaCamera /> Property Images</h2>
           
-          <div className="images-container">
-            <div className="property-images">
-              {property.images && property.images.map((image, index) => (
-                <div key={index} className="property-image-item">
-                  <img src={image} alt={`Property ${index + 1}`} />
-                  <button
-                    type="button"
-                    className="image-remove-btn"
-                    onClick={() => handleImageRemove(index)}
+          <div className="image-upload-section">
+            <h3>Property Images</h3>
+            <p>Upload images of your property. You can upload up to 5 images.</p>
+            
+            {remainingSlots > 0 ? (
+              <p>You can upload {remainingSlots} more image(s).</p>
+            ) : (
+              <p className="error-text">Maximum number of images reached. Delete some images to upload more.</p>
+            )}
+            
+            {/* Preview section */}
+            {imagePreview && (
+              <div className="image-preview-container">
+                <img src={imagePreview} alt="Preview" className="image-preview" />
+                <div className="image-actions">
+                  <button 
+                    type="button" 
+                    className="image-action-btn upload"
+                    onClick={handleImageUpload}
+                    disabled={imageUploading}
                   >
-                    <FaTrash />
+                    <FaUpload /> {imageUploading ? 'Uploading...' : 'Upload'}
+                  </button>
+                  <button 
+                    type="button" 
+                    className="image-action-btn delete"
+                    onClick={handleCancelImagePreview}
+                    disabled={imageUploading}
+                  >
+                    <FaTimes /> Cancel
                   </button>
                 </div>
-              ))}
-            </div>
+              </div>
+            )}
             
-            <div className="image-upload-section">
-              {imagePreview ? (
-                <div className="image-preview-container">
-                  <img src={imagePreview} alt="Preview" className="image-preview" />
-                  <div className="image-preview-actions">
-                    <button
-                      type="button"
-                      className="image-action-btn upload"
-                      onClick={handleImageUpload}
-                      disabled={imageUploading}
+            {/* Multiple files info */}
+            {multipleFiles.length > 0 && (
+              <div className="multiple-files-info">
+                <p>{multipleFiles.length} files selected for upload</p>
+                {uploadProgress > 0 && (
+                  <div className="progress-bar-container">
+                    <div 
+                      className="progress-bar" 
+                      style={{ width: `${uploadProgress}%` }}
                     >
-                      <FaUpload /> {imageUploading ? 'Uploading...' : 'Upload'}
-                    </button>
-                    <button
-                      type="button"
-                      className="image-action-btn cancel"
-                      onClick={handleCancelImagePreview}
-                      disabled={imageUploading}
-                    >
-                      <FaTimes /> Cancel
-                    </button>
+                      {uploadProgress}%
+                    </div>
                   </div>
+                )}
+                <div className="image-actions">
+                  <button 
+                    type="button" 
+                    className="image-action-btn upload"
+                    onClick={handleImageUpload}
+                    disabled={imageUploading}
+                  >
+                    <FaUpload /> {imageUploading ? 'Uploading...' : 'Upload All'}
+                  </button>
+                  <button 
+                    type="button" 
+                    className="image-action-btn delete"
+                    onClick={() => {
+                      setMultipleFiles([]);
+                      if (fileInputRef.current) fileInputRef.current.value = '';
+                    }}
+                    disabled={imageUploading}
+                  >
+                    <FaTimes /> Cancel
+                  </button>
                 </div>
-              ) : (
-                <div className="image-upload-placeholder" onClick={handleImageClick}>
-                  <FaCamera className="upload-icon" />
-                  <p>Click to add an image</p>
-                  <span className="upload-hint">Max size: 5MB</span>
+              </div>
+            )}
+            
+            {/* Upload placeholder */}
+            {!imagePreview && multipleFiles.length === 0 && remainingSlots > 0 && (
+              <div className="image-upload-placeholder" onClick={handleImageClick}>
+                <FaCamera />
+                <p>Click to select {remainingSlots > 1 ? 'images' : 'an image'}</p>
+                <p className="small">You can select up to {remainingSlots} images at once</p>
+              </div>
+            )}
+            
+            {/* Hidden file input */}
+            <input 
+              type="file" 
+              ref={fileInputRef} 
+              onChange={handleImageChange} 
+              style={{ display: 'none' }} 
+              accept="image/*"
+              multiple={remainingSlots > 1}
+            />
+            
+            {/* Existing images */}
+            {property.images && property.images.length > 0 && (
+              <div className="existing-images">
+                <h4>Uploaded Images</h4>
+                <div className="images-grid">
+                  {property.images.map((image, index) => (
+                    <div key={index} className="image-item">
+                      <img src={image} alt={`Property ${index + 1}`} />
+                      <button 
+                        type="button" 
+                        className="image-action-btn delete"
+                        onClick={() => handleImageRemove(index)}
+                      >
+                        <FaTrash /> Delete
+                      </button>
+                    </div>
+                  ))}
                 </div>
-              )}
-              <input
-                type="file"
-                ref={fileInputRef}
-                accept="image/*"
-                onChange={handleImageChange}
-                style={{ display: 'none' }}
-              />
-            </div>
+              </div>
+            )}
           </div>
         </div>
         

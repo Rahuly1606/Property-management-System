@@ -1,6 +1,15 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { FaHome, FaUserTie, FaUsers, FaClipboardList, FaMoneyBillWave, FaTools, FaChartLine } from 'react-icons/fa';
+import { 
+  FaHome, 
+  FaUserTie, 
+  FaUsers, 
+  FaClipboardList, 
+  FaMoneyBillWave, 
+  FaTools, 
+  FaChartLine,
+  FaArrowRight
+} from 'react-icons/fa';
 import './HomePage.css';
 
 const HomePage = () => {
@@ -8,6 +17,7 @@ const HomePage = () => {
     <div className="home-page">
       {/* Hero Section */}
       <section className="hero">
+        <div className="hero-overlay"></div>
         <div className="hero-content">
           <h1>Simplify Your Property Management</h1>
           <p>A comprehensive solution for landlords and tenants</p>
@@ -16,7 +26,7 @@ const HomePage = () => {
               Browse Properties
             </Link>
             <Link to="/register" className="btn btn-secondary">
-              Get Started
+              Get Started <FaArrowRight className="btn-icon" />
             </Link>
           </div>
         </div>
@@ -132,7 +142,7 @@ const HomePage = () => {
           <h2>Ready to streamline your property management?</h2>
           <p>Join thousands of landlords and tenants who trust our platform.</p>
           <Link to="/register" className="btn btn-primary btn-large">
-            Get Started Today
+            Get Started Today <FaArrowRight className="btn-icon" />
           </Link>
         </div>
       </section>

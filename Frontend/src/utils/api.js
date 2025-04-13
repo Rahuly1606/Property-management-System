@@ -1,46 +1,43 @@
 import axios from 'axios';
 
-// Create axios instance with base URL
+// Set up base URL for API requests
+const API_URL = 'http://localhost:8080/api';
+
+// Create axios instance with default config
 const api = axios.create({
-  baseURL: '/api', // This will be prepended to all request URLs
+  baseURL: API_URL,
   headers: {
-    'Content-Type': 'application/json',
+    'Content-Type': 'application/json'
   },
+  withCredentials: true // Important for cookies
 });
 
-// Request interceptor for adding auth token
+// Request interceptor to add auth token
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
     if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+      config.headers.Authorization = token;
     }
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
-// Response interceptor for handling common errors
+// Response interceptor for error handling
 api.interceptors.response.use(
-  (response) => {
-    return response;
-  },
-  (error) => {
-    const { response } = error;
+  (response) => response,
+  async (error) => {
+    // Log the error for debugging
+    console.error("API Error:", error.response?.status, error.response?.data || error.message);
     
     // Handle authentication errors
-    if (response && response.status === 401) {
-      // Clear local storage and reload page
+    if (error.response && error.response.status === 401) {
+      // Clear token and redirect to login if unauthorized
+      console.log("Unauthorized access, redirecting to login");
       localStorage.removeItem('token');
-      localStorage.removeItem('userData');
+      localStorage.removeItem('user');
       window.location.href = '/login';
-    }
-    
-    // Handle server errors
-    if (response && response.status >= 500) {
-      console.error('Server error:', response.data);
     }
     
     return Promise.reject(error);

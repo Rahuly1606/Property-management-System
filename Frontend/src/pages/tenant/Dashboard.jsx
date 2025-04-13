@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { FaHome, FaFileContract, FaMoneyBillWave, FaTools, FaExclamationTriangle, FaPlus } from 'react-icons/fa';
+import { FaHome, FaFileContract, FaMoneyBillWave, FaTools, FaExclamationTriangle, FaPlus, FaUser } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../utils/api';
 import './Dashboard.css';
@@ -90,9 +90,12 @@ const TenantDashboard = () => {
       <div className="dashboard-header">
         <div>
           <h1>Tenant Dashboard</h1>
-          <p>Welcome back, {currentUser?.name || 'Tenant'}!</p>
+          <p>Welcome back, {currentUser?.firstName || 'Tenant'}!</p>
         </div>
         <div className="dashboard-actions">
+          <Link to="/profile" className="btn btn-outline mr-2">
+            <FaUser /> My Profile
+          </Link>
           <Link to="/tenant/maintenance/new" className="btn btn-primary">
             <FaPlus /> New Maintenance Request
           </Link>

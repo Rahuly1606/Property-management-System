@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaBuilding, FaMoneyBillWave, FaTools, FaCalendarAlt, FaPlus, FaBug } from 'react-icons/fa';
+import { FaBuilding, FaMoneyBillWave, FaTools, FaCalendarAlt, FaPlus, FaBug, FaUser } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
 import axios from '../../utils/api';
 import { useAuth } from '../../contexts/AuthContext';
@@ -73,6 +73,9 @@ const LandlordDashboard = () => {
           <p className="text-gray-500">Welcome back, {user?.firstName}!</p>
         </div>
         <div className="flex items-center gap-4 mt-4 md:mt-0">
+          <Link to="/profile" className="btn btn-outline btn-info flex items-center gap-2" title="View or edit your profile">
+            <FaUser /> My Profile
+          </Link>
           {isDevelopment && (
             <button 
               onClick={handleToggleMockMode} 
