@@ -359,7 +359,7 @@ const MakePaymentForm = () => {
               {leaseDetails.propertyAddress}
             </Typography>
             <Typography variant="body1" sx={{ mt: 1 }}>
-              Monthly Rent: ${leaseDetails.rentAmount}
+              Monthly Rent: ₹{leaseDetails.rentAmount}
             </Typography>
             <Typography variant="body2" color="text.secondary">
               Lease Period: {new Date(leaseDetails.startDate).toLocaleDateString()} - {new Date(leaseDetails.endDate).toLocaleDateString()}
@@ -412,7 +412,7 @@ const MakePaymentForm = () => {
                 value={paymentData.amount}
                 onChange={handleChange}
                 InputProps={{
-                  startAdornment: <InputAdornment position="start">$</InputAdornment>,
+                  startAdornment: <InputAdornment position="start">₹</InputAdornment>,
                   inputProps: { min: 0, step: 0.01 }
                 }}
               />
@@ -626,7 +626,7 @@ const MakePaymentForm = () => {
               <strong>Property:</strong> {leaseDetails?.propertyName}
             </Typography>
             <Typography variant="body2">
-              <strong>Amount:</strong> ${paymentData.amount}
+              <strong>Amount:</strong> ₹{paymentData.amount}
             </Typography>
             <Typography variant="body2">
               <strong>Payment Method:</strong> {paymentData.paymentMethod === 'EXISTING_CARD' 

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, Routes, Route, useLocation } from 'react-router-dom';
-import { FaCreditCard, FaHistory, FaDollarSign, FaChartLine } from 'react-icons/fa';
+import { FaCreditCard, FaHistory, FaRupeeSign, FaChartLine } from 'react-icons/fa';
 import PaymentForm from './PaymentForm';
 import PaymentHistory from './PaymentHistory';
 import './PaymentOverview.css';
@@ -88,7 +88,7 @@ const PaymentOverview = () => {
           className={`payment-nav-item ${activeTab === 'upcoming' ? 'active' : ''}`}
           onClick={() => setActiveTab('upcoming')}
         >
-          <FaDollarSign />
+          <FaRupeeSign />
           <span>Upcoming Payments</span>
         </Link>
         <Link 
@@ -126,7 +126,7 @@ const PaymentOverview = () => {
                       <div className="payment-info">
                         <h3>{payment.description}</h3>
                         <p>Due: {formatDate(payment.dueDate)}</p>
-                        <p className="amount">${payment.amount.toFixed(2)}</p>
+                        <p className="amount">₹{payment.amount.toFixed(2)}</p>
                       </div>
                       <div className="payment-actions">
                         {isPastDue ? (
@@ -156,11 +156,11 @@ const PaymentOverview = () => {
               <div className="analytics-grid">
                 <div className="analytics-card">
                   <h3>Total Paid</h3>
-                  <div className="analytics-value">${paymentAnalytics.totalPaid.toFixed(2)}</div>
+                  <div className="analytics-value">₹{paymentAnalytics.totalPaid.toFixed(2)}</div>
                 </div>
                 <div className="analytics-card">
                   <h3>Average Monthly</h3>
-                  <div className="analytics-value">${paymentAnalytics.averageMonthly.toFixed(2)}</div>
+                  <div className="analytics-value">₹{paymentAnalytics.averageMonthly.toFixed(2)}</div>
                 </div>
                 <div className="analytics-card">
                   <h3>Payments Made</h3>

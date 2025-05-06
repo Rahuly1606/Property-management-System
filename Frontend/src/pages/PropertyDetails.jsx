@@ -2,12 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   FaArrowLeft, FaMapMarkerAlt, FaBuilding, FaBed, 
-  FaBath, FaRulerCombined, FaDollarSign, FaCalendarAlt,
+  FaBath, FaRulerCombined, FaRupeeSign, FaCalendarAlt,
   FaList, FaEdit, FaToggleOn, FaToggleOff, FaShare
 } from 'react-icons/fa';
 import propertyService from '../services/propertyService';
 import { useAuth } from '../contexts/AuthContext';
 import './PropertyDetails.css';
+import BuyPropertyButton from '../components/property/BuyPropertyButton';
 
 const PropertyDetails = () => {
   const { id } = useParams();
@@ -124,9 +125,8 @@ const PropertyDetails = () => {
   };
   
   const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
+    return new Intl.NumberFormat('en-IN', {
+      style: 'decimal',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0
     }).format(amount);
@@ -230,7 +230,7 @@ const PropertyDetails = () => {
             </div>
             
             <div className="property-price">
-              <FaDollarSign />
+              <FaRupeeSign />
               <span>{formatCurrency(property.monthlyRent)}/month</span>
             </div>
             
@@ -287,7 +287,7 @@ const PropertyDetails = () => {
                 
                 {property.securityDeposit && (
                   <div className="feature">
-                    <FaDollarSign />
+                    <FaRupeeSign />
                     <div>
                       <span className="feature-label">Security Deposit</span>
                       <span className="feature-value">{formatCurrency(property.securityDeposit)}</span>
@@ -424,6 +424,18 @@ const PropertyDetails = () => {
                   </button>
                 </div>
               )}
+            </div>
+          )}
+          
+          {/* Add Buy Property Button for tenants */}
+          {isTenant && property.available && (
+            <div className="buy-property-section">
+              <h2>Interested in buying?</h2>
+              <BuyPropertyButton
+                propertyId={property.id}
+                propertyTitle={property.title}
+                price={property.monthlyRent * 12} // Calculating yearly price
+              />
             </div>
           )}
         </div>

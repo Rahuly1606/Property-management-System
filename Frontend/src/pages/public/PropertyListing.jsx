@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { FaSearch, FaBed, FaBath, FaRulerCombined, FaMapMarkerAlt, FaFilter } from 'react-icons/fa';
+import { FaSearch, FaBed, FaBath, FaRulerCombined, FaMapMarkerAlt, FaFilter, FaRupeeSign } from 'react-icons/fa';
 import Card from '../../components/common/Card';
 import Button from '../../components/common/Button';
 import propertyService from '../../services/propertyService';
@@ -206,6 +206,11 @@ const PropertyListing = () => {
     { value: 'STUDIO', label: 'Studio' },
   ];
 
+  // Check if there are any additional formatter functions to update
+  const formatCurrency = (amount) => {
+    return `₹${amount.toLocaleString('en-IN')}`;
+  };
+
   return (
     <div className="property-listing-page">
       <div className="property-listing-header">
@@ -268,7 +273,7 @@ const PropertyListing = () => {
             </div>
 
             <div className="filter-group">
-              <label>Min Price ($)</label>
+              <label>Min Price (₹)</label>
               <input
                 type="number"
                 name="priceMin"
@@ -276,12 +281,12 @@ const PropertyListing = () => {
                 step="100"
                 value={filters.priceMin}
                 onChange={handleFilterChange}
-                placeholder="Min $"
+                placeholder="Min ₹"
               />
             </div>
 
             <div className="filter-group">
-              <label>Max Price ($)</label>
+              <label>Max Price (₹)</label>
               <input
                 type="number"
                 name="priceMax"
@@ -289,7 +294,7 @@ const PropertyListing = () => {
                 step="100"
                 value={filters.priceMax}
                 onChange={handleFilterChange}
-                placeholder="Max $"
+                placeholder="Max ₹"
               />
             </div>
           </div>
@@ -358,7 +363,6 @@ const PropertyListing = () => {
                   <p className="property-location">
                     <FaMapMarkerAlt /> {property.address}, {property.city}, {property.state}
                   </p>
-                  <p className="property-price">${property.monthlyRent}/month</p>
                   <div className="property-details">
                     <span>
                       <FaBed /> {property.numberOfBedrooms} bed
@@ -371,6 +375,9 @@ const PropertyListing = () => {
                     </span>
                   </div>
                   <p className="property-description">{property.description.substring(0, 100)}...</p>
+                  <p className="property-price">
+                    {formatCurrency(property.monthlyRent)}/month
+                  </p>
                   <Link to={`/properties/${property.id}`} className="view-details-link">
                     <Button variant="primary" className="view-details-button">
                       View Details

@@ -360,7 +360,7 @@ const AdminDashboard = () => {
             
             <Box sx={{ mt: 2, display: 'flex', alignItems: 'center' }}>
               <Typography component="p" variant="h3" color="inherit">
-                ${revenueStats.thisMonth.toFixed(0)}
+                ₹{revenueStats.thisMonth.toFixed(0)}
               </Typography>
               
               <Box sx={{ display: 'flex', alignItems: 'center', ml: 2 }}>
@@ -379,7 +379,7 @@ const AdminDashboard = () => {
             </Box>
             
             <Typography variant="body2" color="inherit" sx={{ mt: 'auto' }}>
-              YTD: ${revenueStats.yearToDate.toFixed(0)} | Last Month: ${revenueStats.lastMonth.toFixed(0)}
+              YTD: ₹{revenueStats.yearToDate.toFixed(0)} | Last Month: ₹{revenueStats.lastMonth.toFixed(0)}
             </Typography>
           </Paper>
         </Grid>

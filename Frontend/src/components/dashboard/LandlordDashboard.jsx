@@ -349,12 +349,12 @@ const LandlordDashboard = () => {
             
             <Box sx={{ mt: 2, display: 'flex', alignItems: 'center' }}>
               <Typography component="p" variant="h3" color="inherit">
-                ${paymentStats.thisMonth.toFixed(2)}
+                ₹{paymentStats.thisMonth.toFixed(2)}
               </Typography>
             </Box>
             
             <Typography variant="body2" color="inherit" sx={{ mt: 'auto' }}>
-              This month's rental income | Outstanding: ${paymentStats.outstanding.toFixed(2)}
+              This month's rental income | Outstanding: ₹{paymentStats.outstanding.toFixed(2)}
             </Typography>
           </Paper>
         </Grid>
@@ -506,7 +506,7 @@ const LandlordDashboard = () => {
                           <>
                             {`${lease.property?.name || 'Property'}`}
                             <br />
-                            {`Expires: ${new Date(lease.endDate).toLocaleDateString()} • $${lease.monthlyRent?.toFixed(2)}/month`}
+                            {`Expires: ${new Date(lease.endDate).toLocaleDateString()} • ₹${lease.monthlyRent?.toFixed(2)}/month`}
                           </>
                         }
                         primaryTypographyProps={{ fontWeight: 'medium' }}
@@ -560,7 +560,7 @@ const LandlordDashboard = () => {
                         sx={{ py: 1 }}
                         secondaryAction={
                           <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-                            ${payment.amount.toFixed(2)}
+                            ₹{payment.amount.toFixed(2)}
                           </Typography>
                         }
                       >
@@ -595,7 +595,7 @@ const LandlordDashboard = () => {
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pt: 1 }}>
                   <Box>
                     <Typography variant="body2" color="text.secondary">
-                      Last Month's Revenue: ${paymentStats.lastMonth.toFixed(2)}
+                      ₹{paymentStats.lastMonth.toFixed(2)}
                     </Typography>
                   </Box>
                   <Button 

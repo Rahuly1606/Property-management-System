@@ -597,7 +597,7 @@ const PropertyDetails = () => {
                               Monthly Rent
                             </Typography>
                             <Typography variant="body1">
-                              ${lease.monthlyRent?.toFixed(2)}
+                              ₹{lease.monthlyRent?.toFixed(2)}
                             </Typography>
                           </Grid>
                           
@@ -606,7 +606,7 @@ const PropertyDetails = () => {
                               Security Deposit
                             </Typography>
                             <Typography variant="body1">
-                              ${lease.securityDeposit?.toFixed(2)}
+                              ₹{lease.securityDeposit?.toFixed(2)}
                             </Typography>
                           </Grid>
                         </Grid>

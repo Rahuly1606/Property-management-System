@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   FaSearch, FaMapMarkerAlt, FaBuilding, FaBed, 
-  FaBath, FaRulerCombined, FaDollarSign, FaList,
+  FaBath, FaRulerCombined, FaRupeeSign, FaList,
   FaSort, FaSortAmountDown, FaSortAmountUp
 } from 'react-icons/fa';
 import propertyService from '../../services/propertyService';
@@ -101,12 +101,7 @@ const BrowseProperties = () => {
   const propertyTypes = propertyService.getPropertyTypes();
   
   const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(amount);
+    return `₹${amount.toLocaleString()}`;
   };
   
   const getSortIcon = (field) => {
@@ -283,7 +278,6 @@ const BrowseProperties = () => {
                     </div>
                   )}
                   <div className="property-price">
-                    <FaDollarSign />
                     <span>{formatCurrency(property.monthlyRent)}/month</span>
                   </div>
                   <Link to={`/properties/${property.id}`} className="view-property-btn">

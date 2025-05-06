@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { 
   FaBuilding, FaHome, FaMapMarkerAlt, FaRulerCombined, 
-  FaBed, FaBath, FaDollarSign, FaCalendarAlt, FaList,
+  FaBed, FaBath, FaRupeeSign, FaCalendarAlt, FaList,
   FaSave, FaTimes, FaCamera, FaUpload, FaTrash, FaBug
 } from 'react-icons/fa';
 import propertyService from '../../services/propertyService';
@@ -633,7 +633,7 @@ const PropertyForm = () => {
         </div>
         
         <div className="form-section">
-          <h2><FaDollarSign /> Pricing & Availability</h2>
+          <h2><FaRupeeSign /> Pricing & Availability</h2>
           
           <div className="form-row">
             <div className="form-group">
@@ -641,14 +641,14 @@ const PropertyForm = () => {
                 Monthly Rent <span className="required">*</span>
               </label>
               <div className="input-with-icon">
-                <FaDollarSign className="input-icon" />
+                <FaRupeeSign className="input-icon" />
                 <input
                   id="monthlyRent"
                   name="monthlyRent"
                   type="text"
                   value={property.monthlyRent}
                   onChange={handleNumberInputChange}
-                  placeholder="e.g., 1500"
+                  placeholder="e.g., 15000"
                   required
                 />
               </div>
@@ -659,14 +659,14 @@ const PropertyForm = () => {
                 Security Deposit
               </label>
               <div className="input-with-icon">
-                <FaDollarSign className="input-icon" />
+                <FaRupeeSign className="input-icon" />
                 <input
                   id="securityDeposit"
                   name="securityDeposit"
                   type="text"
                   value={property.securityDeposit}
                   onChange={handleNumberInputChange}
-                  placeholder="e.g., 1500"
+                  placeholder="e.g., 45000"
                 />
               </div>
             </div>

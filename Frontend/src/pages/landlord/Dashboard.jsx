@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaBuilding, FaMoneyBillWave, FaTools, FaCalendarAlt, FaPlus, FaBug, FaUser } from 'react-icons/fa';
+import { FaBuilding, FaRupeeSign, FaTools, FaCalendarAlt, FaPlus, FaBug, FaUser } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
 import axios from '../../utils/api';
 import { useAuth } from '../../contexts/AuthContext';
@@ -27,6 +27,14 @@ const LandlordDashboard = () => {
     setMockModeEnabled(isEnabled);
     // Refresh the page to apply mock mode
     window.location.reload();
+  };
+
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'decimal',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(amount);
   };
 
   useEffect(() => {
@@ -129,7 +137,7 @@ const LandlordDashboard = () => {
           <div className="card-body">
             <div className="flex justify-between items-center">
               <h2 className="card-title">Pending Payments</h2>
-              <FaMoneyBillWave className="text-accent text-3xl" />
+              <FaRupeeSign className="text-accent text-3xl" />
             </div>
             <p className="text-3xl font-bold mt-2">{stats.pendingPayments}</p>
             <div className="card-actions justify-end mt-2">
@@ -233,19 +241,19 @@ const LandlordDashboard = () => {
                     <tr>
                       <td>John Smith</td>
                       <td>Maple Apt #101</td>
-                      <td>$1,200</td>
+                      <td><FaRupeeSign className="rupee-icon" /> {formatCurrency(12000)}</td>
                       <td><span className="badge badge-success">Paid</span></td>
                     </tr>
                     <tr>
                       <td>Mary Johnson</td>
                       <td>Maple Apt #203</td>
-                      <td>$1,150</td>
+                      <td><FaRupeeSign className="rupee-icon" /> {formatCurrency(11500)}</td>
                       <td><span className="badge badge-success">Paid</span></td>
                     </tr>
                     <tr>
                       <td>Robert Davis</td>
                       <td>Sunset Villa #3B</td>
-                      <td>$1,500</td>
+                      <td><FaRupeeSign className="rupee-icon" /> {formatCurrency(15000)}</td>
                       <td><span className="badge badge-warning">Pending</span></td>
                     </tr>
                   </tbody>

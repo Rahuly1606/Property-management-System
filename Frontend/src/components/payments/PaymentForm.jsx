@@ -299,7 +299,7 @@ const PaymentForm = () => {
       <div className="payment-success">
         <div className="success-icon">✓</div>
         <h2>Payment Successful!</h2>
-        <p>Your payment of ${formData.amount} has been processed successfully.</p>
+        <p>Your payment of ₹{formData.amount} has been processed successfully.</p>
         <p>You will be redirected to the payment history page.</p>
       </div>
     );
@@ -323,7 +323,7 @@ const PaymentForm = () => {
                   Property: {lease.propertyName || lease.propertyAddress || 'Your Rental'}
                 </Typography>
                 <Typography variant="body2">
-                  Monthly Rent: ${lease.monthlyRent?.toFixed(2) || '0.00'}
+                  Monthly Rent: ₹{lease.monthlyRent?.toFixed(2) || '0.00'}
                 </Typography>
                 <Typography variant="body2">
                   Lease Period: {lease.startDate} to {lease.endDate}
@@ -343,7 +343,7 @@ const PaymentForm = () => {
                   name="amount"
                   type="number"
                   InputProps={{
-                    startAdornment: <InputAdornment position="start">$</InputAdornment>,
+                    startAdornment: <InputAdornment position="start">₹</InputAdornment>,
                   }}
                   value={formData.amount}
                   onChange={handleInputChange}
@@ -542,7 +542,7 @@ const PaymentForm = () => {
               {isSubmitting ? (
                 <CircularProgress size={24} />
               ) : (
-                `Pay $${parseFloat(formData.amount || 0).toFixed(2)}`
+                `Pay ₹${parseFloat(formData.amount || 0).toFixed(2)}`
               )}
             </Button>
             

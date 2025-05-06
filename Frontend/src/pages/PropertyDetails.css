@@ -538,4 +538,18 @@
   .cancel-button, .submit-button {
     width: 100%;
   }
+}
+
+.buy-property-section {
+  margin-top: 2rem;
+  padding: 1.5rem;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.buy-property-section h2 {
+  margin-bottom: 1rem;
+  color: #343a40;
+  font-size: 1.5rem;
 } 

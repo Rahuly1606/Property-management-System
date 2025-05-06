@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { FaPlus, FaEdit, FaToggleOn, FaToggleOff, FaEye, FaBuilding, FaBed, FaBath, FaRulerCombined, FaDollarSign, FaMapMarkerAlt, FaBug } from 'react-icons/fa';
+import { FaPlus, FaEdit, FaToggleOn, FaToggleOff, FaEye, FaBuilding, FaBed, FaBath, FaRulerCombined, FaRupeeSign, FaMapMarkerAlt, FaBug } from 'react-icons/fa';
 import propertyService from '../../services/propertyService';
 import { useAuth } from '../../contexts/AuthContext';
 import { toggleMockDataMode, isMockDataModeEnabled } from '../../utils/mockData';
@@ -89,9 +89,8 @@ const ManageProperties = () => {
   };
   
   const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
+    return new Intl.NumberFormat('en-IN', {
+      style: 'decimal',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0
     }).format(amount);
@@ -215,7 +214,7 @@ const ManageProperties = () => {
                   </div>
                   
                   <div className="property-price">
-                    <FaDollarSign /> {formatCurrency(property.monthlyRent)}/month
+                    <FaRupeeSign className="rupee-icon" /> {formatCurrency(property.monthlyRent)}/month
                   </div>
                 </div>
               </div>

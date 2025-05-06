@@ -203,7 +203,7 @@ Building amenities include a fitness center, rooftop pool, and 24-hour concierge
                 </div>
               </div>
               <div className="flex items-center">
-                <span className="font-bold text-3xl text-primary">${property.monthlyRent.toLocaleString()}</span>
+                <span className="font-bold text-3xl text-primary">₹{property.monthlyRent.toLocaleString()}</span>
                 <span className="text-gray-500 ml-2">/month</span>
               </div>
             </div>
@@ -254,7 +254,7 @@ Building amenities include a fitness center, rooftop pool, and 24-hour concierge
               </div>
               <div>
                 <p className="text-gray-500">Security Deposit</p>
-                <p className="font-medium">${property.securityDeposit.toLocaleString()}</p>
+                <p className="font-medium">₹{property.securityDeposit.toLocaleString()}</p>
               </div>
               <div>
                 <p className="text-gray-500">Lease Terms</p>

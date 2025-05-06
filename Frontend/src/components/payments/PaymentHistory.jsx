@@ -194,7 +194,7 @@ const PaymentHistory = () => {
                 <tr key={payment.id}>
                   <td>{formatDate(payment.date)}</td>
                   <td className="payment-description">{payment.description}</td>
-                  <td className="payment-amount">${payment.amount.toFixed(2)}</td>
+                  <td className="payment-amount">₹{payment.amount.toFixed(2)}</td>
                   <td>{payment.paymentMethod}</td>
                   <td>{getStatusBadge(payment.status)}</td>
                   <td>

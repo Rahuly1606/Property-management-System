@@ -636,7 +636,7 @@ const PropertyForm = () => {
                 value={formData.rentAmount}
                 onChange={handleNumberChange}
                 InputProps={{
-                  startAdornment: <InputAdornment position="start">$</InputAdornment>,
+                  startAdornment: <InputAdornment position="start">₹</InputAdornment>,
                   inputProps: { min: 0 }
                 }}
               />
@@ -652,7 +652,7 @@ const PropertyForm = () => {
                 value={formData.depositAmount}
                 onChange={handleNumberChange}
                 InputProps={{
-                  startAdornment: <InputAdornment position="start">$</InputAdornment>,
+                  startAdornment: <InputAdornment position="start">₹</InputAdornment>,
                   inputProps: { min: 0 }
                 }}
               />

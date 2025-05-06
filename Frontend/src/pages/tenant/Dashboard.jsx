@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { FaHome, FaFileContract, FaMoneyBillWave, FaTools, FaExclamationTriangle, FaPlus, FaUser } from 'react-icons/fa';
+import { FaHome, FaFileContract, FaMoneyBillWave, FaTools, FaExclamationTriangle, FaPlus, FaUser, FaRupeeSign } from 'react-icons/fa';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../utils/api';
 import './Dashboard.css';
@@ -127,7 +127,7 @@ const TenantDashboard = () => {
                 </div>
                 <div className="lease-detail">
                   <span className="detail-label">Monthly Rent:</span>
-                  <span className="detail-value">${leaseInfo.monthlyRent}</span>
+                  <span className="detail-value">₹{leaseInfo.monthlyRent}</span>
                 </div>
                 <div className="lease-detail">
                   <span className="detail-label">Status:</span>
@@ -159,7 +159,7 @@ const TenantDashboard = () => {
             {upcomingPayment && (
               <div className="upcoming-payment">
                 <h3>Upcoming Payment</h3>
-                <div className="payment-amount">${upcomingPayment.amount}</div>
+                <div className="payment-amount">₹{upcomingPayment.amount}</div>
                 <div className="payment-due">
                   Due on {new Date(upcomingPayment.dueDate).toLocaleDateString()}
                 </div>
@@ -185,7 +185,7 @@ const TenantDashboard = () => {
                     {recentPayments.map(payment => (
                       <tr key={payment.id}>
                         <td>{new Date(payment.date).toLocaleDateString()}</td>
-                        <td>${payment.amount}</td>
+                        <td>₹{payment.amount}</td>
                         <td>
                           <span className={`status-badge status-${payment.status.toLowerCase()}`}>
                             {payment.status}
