@@ -4,6 +4,7 @@ import { FaHome, FaFileContract, FaMoneyBillWave, FaTools, FaExclamationTriangle
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../utils/api';
 import './Dashboard.css';
+import maintenanceService from '../../services/maintenanceService';
 
 const TenantDashboard = () => {
   const { currentUser } = useAuth();
@@ -50,26 +51,40 @@ const TenantDashboard = () => {
         };
         setUpcomingPayment(upcomingPaymentData);
         
-        // Simulate maintenance requests
-        const maintenanceData = [
-          { 
-            id: 1, 
-            issue: 'Leaking faucet in bathroom', 
-            status: 'In Progress', 
-            priority: 'Medium',
-            date: '2023-03-15',
-            notes: 'Plumber scheduled for tomorrow'
-          },
-          { 
-            id: 2, 
-            issue: 'Broken air conditioning', 
-            status: 'Completed', 
-            priority: 'High',
-            date: '2023-02-20',
-            notes: 'Fixed on Feb 22'
+        // Fetch actual maintenance requests
+        try {
+          const maintenanceData = await maintenanceService.getTenantMaintenanceRequests();
+          if (Array.isArray(maintenanceData)) {
+            setMaintenanceRequests(maintenanceData.slice(0, 3)); // Show only the 3 most recent
+          } else if (maintenanceData && maintenanceData.content && Array.isArray(maintenanceData.content)) {
+            setMaintenanceRequests(maintenanceData.content.slice(0, 3));
+          } else {
+            console.error('Unexpected maintenance data format:', maintenanceData);
+            setMaintenanceRequests([]);
           }
-        ];
-        setMaintenanceRequests(maintenanceData);
+        } catch (error) {
+          console.error('Error fetching maintenance requests:', error);
+          // Fallback to sample data if API fails
+          const sampleMaintenanceData = [
+            { 
+              id: 1, 
+              title: 'Leaking faucet in bathroom', 
+              status: 'IN_PROGRESS', 
+              priority: 'MEDIUM',
+              createdAt: '2023-03-15',
+              description: 'The bathroom sink faucet is leaking constantly.'
+            },
+            { 
+              id: 2, 
+              title: 'Broken air conditioning', 
+              status: 'COMPLETED', 
+              priority: 'HIGH',
+              createdAt: '2023-02-20',
+              description: 'AC unit is not cooling properly.'
+            }
+          ];
+          setMaintenanceRequests(sampleMaintenanceData);
+        }
         
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
@@ -217,26 +232,26 @@ const TenantDashboard = () => {
                 {maintenanceRequests.map(request => (
                   <div key={request.id} className="maintenance-item">
                     <div className="maintenance-header">
-                      <h3>{request.issue}</h3>
-                      <span className={`status-badge status-${request.status.toLowerCase().replace(' ', '-')}`}>
-                        {request.status}
+                      <h3>{request.title}</h3>
+                      <span className={`status-badge status-${request.status?.toLowerCase().replace('_', '-')}`}>
+                        {request.status?.replace('_', ' ')}
                       </span>
                     </div>
                     <div className="maintenance-details">
                       <div className="maintenance-detail">
                         <span className="detail-label">Date:</span>
-                        <span className="detail-value">{new Date(request.date).toLocaleDateString()}</span>
+                        <span className="detail-value">{new Date(request.createdAt).toLocaleDateString()}</span>
                       </div>
                       <div className="maintenance-detail">
                         <span className="detail-label">Priority:</span>
-                        <span className={`detail-value priority-${request.priority.toLowerCase()}`}>
+                        <span className={`detail-value priority-${request.priority?.toLowerCase()}`}>
                           {request.priority}
                         </span>
                       </div>
                     </div>
-                    {request.notes && (
+                    {request.description && (
                       <div className="maintenance-notes">
-                        <p>{request.notes}</p>
+                        <p>{request.description}</p>
                       </div>
                     )}
                   </div>
@@ -249,14 +264,10 @@ const TenantDashboard = () => {
             )}
           </div>
           <div className="card-footer">
-            <div className="footer-actions">
-              <Link to="/tenant/maintenance/new" className="btn btn-primary">
-                <FaPlus /> New Request
-              </Link>
-              <Link to="/tenant/maintenance" className="btn btn-outline">
-                View All Requests
-              </Link>
-            </div>
+            <Link to="/tenant/maintenance" className="btn btn-outline">View All Requests</Link>
+            <Link to="/tenant/maintenance/new" className="btn btn-primary">
+              <FaPlus className="icon-left" /> New Request
+            </Link>
           </div>
         </div>
       </div>

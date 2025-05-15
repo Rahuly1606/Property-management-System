@@ -5,6 +5,7 @@ import com.propertymanagement.exception.ResourceNotFoundException;
 import com.propertymanagement.model.User;
 import com.propertymanagement.model.UserRole;
 import com.propertymanagement.repository.UserRepository;
+import com.propertymanagement.repository.LeaseRepository;
 import com.propertymanagement.service.CloudinaryService;
 import com.propertymanagement.service.UserService;
 import com.propertymanagement.service.base.impl.BaseServiceImpl;
@@ -26,12 +27,14 @@ public class UserServiceImpl extends BaseServiceImpl<User, UserRepository> imple
     private static final Logger logger = LoggerFactory.getLogger(UserServiceImpl.class);
     private final PasswordEncoder passwordEncoder;
     private final CloudinaryService cloudinaryService;
+    private final LeaseRepository leaseRepository;
 
     @Autowired
-    public UserServiceImpl(UserRepository repository, PasswordEncoder passwordEncoder, CloudinaryService cloudinaryService) {
+    public UserServiceImpl(UserRepository repository, PasswordEncoder passwordEncoder, CloudinaryService cloudinaryService, LeaseRepository leaseRepository) {
         super(repository);
         this.passwordEncoder = passwordEncoder;
         this.cloudinaryService = cloudinaryService;
+        this.leaseRepository = leaseRepository;
     }
 
     @Override
@@ -214,5 +217,14 @@ public class UserServiceImpl extends BaseServiceImpl<User, UserRepository> imple
             return false;
         }
         return user.getRole() != null && user.getRole().name().equals(role);
+    }
+
+    @Override
+    public long countTenantsByLandlord(User landlord) {
+        if (landlord == null) {
+            return 0;
+        }
+        // Count unique tenants from leases associated with landlord's properties
+        return leaseRepository.countDistinctTenantsByLandlord(landlord.getId());
     }
 } 

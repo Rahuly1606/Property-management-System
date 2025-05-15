@@ -68,20 +68,84 @@ public class LeaseController {
                 .map(leaseMapper::toDTO);
     }
 
-    // Get active lease for tenant
+    // Get active leases for tenant (plural endpoint)
+    @GetMapping("/tenant/leases")
+    @PreAuthorize("hasRole('TENANT')")
+    public ResponseEntity<List<LeaseDTO>> getTenantLeases() {
+        try {
+            User currentUser = userService.getCurrentUser();
+            // Find all leases for the current tenant
+            Page<Lease> leasesPage = leaseService.findByTenant(currentUser, Pageable.unpaged());
+            
+            if (leasesPage.isEmpty()) {
+                // Return an empty list instead of 404 when no leases found
+                return ResponseEntity.ok(List.of());
+            }
+            
+            List<LeaseDTO> leasesList = leasesPage.getContent()
+                    .stream()
+                    .map(leaseMapper::toDTO)
+                    .collect(java.util.stream.Collectors.toList());
+            
+            return ResponseEntity.ok(leasesList);
+        } catch (Exception e) {
+            // Log the error
+            System.err.println("Error retrieving tenant leases: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
+    }
+
+    // Get active lease for tenant (singular endpoint)
     @GetMapping("/tenant/lease")
     @PreAuthorize("hasRole('TENANT')")
     public ResponseEntity<LeaseDTO> getTenantLease() {
+        try {
+            User currentUser = userService.getCurrentUser();
+            // Find the active lease for the current user by finding active leases with this tenant
+            Page<Lease> activeLeasesPage = leaseService.findByTenantAndStatus(currentUser, LeaseStatus.ACTIVE, Pageable.unpaged());
+            
+            if (activeLeasesPage.isEmpty()) {
+                // If no ACTIVE lease found, try to find any other lease
+                Page<Lease> anyLeasePage = leaseService.findByTenant(currentUser, Pageable.unpaged());
+                if (anyLeasePage.isEmpty()) {
+                    return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
+                }
+                
+                // Return the most recent lease of any status
+                Lease lease = anyLeasePage.getContent().get(0);
+                return ResponseEntity.ok(leaseMapper.toDTO(lease));
+            }
+            
+            // Return the most recent active lease
+            Lease lease = activeLeasesPage.getContent().get(0);
+            return ResponseEntity.ok(leaseMapper.toDTO(lease));
+        } catch (Exception e) {
+            // Log the error
+            System.err.println("Error retrieving tenant lease: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
+    }
+
+    // Get lease for landlord by ID 
+    @GetMapping("/landlord/leases/{id}")
+    @PreAuthorize("hasRole('LANDLORD')")
+    public ResponseEntity<LeaseDTO> getLandlordLeaseById(@PathVariable Long id) {
         User currentUser = userService.getCurrentUser();
-        // Find the active lease for the current user by finding active leases with this tenant
-        Page<Lease> activeLeasesPage = leaseService.findByTenantAndStatus(currentUser, LeaseStatus.ACTIVE, Pageable.unpaged());
+        Lease lease = leaseService.findById(id);
         
-        if (activeLeasesPage.isEmpty()) {
+        if (lease == null) {
             return ResponseEntity.notFound().build();
         }
         
-        // Return the most recent active lease
-        Lease lease = activeLeasesPage.getContent().get(0);
+        // Verify access rights - user must be landlord of this property
+        boolean hasAccess = lease.getLandlord().getId().equals(currentUser.getId());
+        
+        if (!hasAccess) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        
         return ResponseEntity.ok(leaseMapper.toDTO(lease));
     }
 
@@ -139,6 +203,56 @@ public class LeaseController {
         
         Lease lease = leaseService.createLease(leaseToCreate, property, tenant, currentUser);
         return ResponseEntity.status(HttpStatus.CREATED).body(leaseMapper.toDTO(lease));
+    }
+
+    // Create a new lease request (tenant)
+    @PostMapping("/tenant/leases")
+    @PreAuthorize("hasRole('TENANT')")
+    public ResponseEntity<LeaseDTO> createTenantLeaseRequest(@RequestBody LeaseDTO leaseDTO) {
+        try {
+            User currentUser = userService.getCurrentUser();
+            Lease leaseToCreate = leaseMapper.toEntity(leaseDTO);
+            
+            // Get property from DTO
+            Property property = null;
+            
+            if (leaseDTO.getPropertyId() != null) {
+                property = propertyService.findById(leaseDTO.getPropertyId());
+                if (property == null) {
+                    return ResponseEntity.badRequest().body(null);
+                }
+            } else {
+                return ResponseEntity.badRequest().body(null);
+            }
+            
+            // Set tenant to current user
+            User tenant = currentUser;
+            
+            // Get landlord from property
+            User landlord = property.getLandlord();
+            
+            if (property == null || landlord == null) {
+                return ResponseEntity.badRequest().body(null);
+            }
+            
+            // Handle null values for pricing
+            if (leaseToCreate.getMonthlyRent() == null && property.getMonthlyRent() != null) {
+                leaseToCreate.setMonthlyRent(property.getMonthlyRent());
+            }
+            
+            if (leaseToCreate.getSecurityDeposit() == null && property.getMonthlyRent() != null) {
+                // Default to 2 months rent for security deposit if not specified
+                leaseToCreate.setSecurityDeposit(property.getMonthlyRent().multiply(new java.math.BigDecimal(2)));
+            }
+            
+            Lease lease = leaseService.createLease(leaseToCreate, property, tenant, landlord);
+            return ResponseEntity.status(HttpStatus.CREATED).body(leaseMapper.toDTO(lease));
+        } catch (Exception e) {
+            // Log the error
+            System.err.println("Error creating tenant lease: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
     }
 
     // Update lease

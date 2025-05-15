@@ -652,7 +652,25 @@ const propertyService = {
   },
 
   // Function to get a placeholder image URL if upload fails
-  getPlaceholderImageUrl: () => getPlaceholderImageUrl()
+  getPlaceholderImageUrl: () => getPlaceholderImageUrl(),
+
+  // Update property prices
+  updatePropertyPrices: async (propertyId, priceData) => {
+    try {
+      console.log(`Updating prices for property ID: ${propertyId}`, priceData);
+      const response = await axiosInstance.put(`/properties/${propertyId}/prices`, priceData);
+      return response.data;
+    } catch (error) {
+      console.error('Error updating property prices:', error);
+      throw error;
+    }
+  }
 };
 
-export default propertyService; 
+// Extract exported functions
+const updatePropertyPrices = propertyService.updatePropertyPrices;
+
+export default propertyService;
+export {
+  updatePropertyPrices,
+}; 

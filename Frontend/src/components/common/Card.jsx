@@ -1,4 +1,5 @@
 import React from 'react';
+import './Card.css';
 
 const Card = ({
   children,
@@ -9,6 +10,7 @@ const Card = ({
   className = '',
   onClick,
   footer,
+  variant = 'default',
   ...props
 }) => {
   const handleClick = () => {
@@ -17,37 +19,35 @@ const Card = ({
 
   return (
     <div
-      className={`card bg-base-100 shadow-md hover:shadow-lg transition-shadow ${
-        onClick ? 'cursor-pointer' : ''
+      className={`custom-card ${variant} ${
+        onClick ? 'clickable' : ''
       } ${className}`}
       onClick={handleClick}
       {...props}
     >
       {image && imagePosition === 'top' && (
-        <figure>
+        <div className="card-image">
           <img
             src={image}
             alt={imageAlt}
-            className="object-cover w-full h-48"
           />
-        </figure>
+        </div>
       )}
       <div className="card-body">
         {title && <h2 className="card-title">{title}</h2>}
-        {children}
+        <div className="card-content">{children}</div>
       </div>
       {image && imagePosition === 'bottom' && (
-        <figure>
+        <div className="card-image bottom">
           <img
             src={image}
             alt={imageAlt}
-            className="object-cover w-full h-48"
           />
-        </figure>
+        </div>
       )}
-      {footer && <div className="card-actions justify-end p-4">{footer}</div>}
+      {footer && <div className="card-footer">{footer}</div>}
     </div>
   );
 };
 
-export default Card; 
+export default Card;

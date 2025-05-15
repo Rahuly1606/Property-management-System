@@ -61,17 +61,46 @@ const paymentService = {
     }
   },
 
-  // Make a payment (tenant) with existing payment method
-  makePayment: async (amount, description, leaseId, paymentMethodId) => {
+  // Make a payment (tenant) with existing payment method or Razorpay
+  makePayment: async (amount, description, leaseId, paymentMethodId, razorpayData = null) => {
     try {
-      const response = await axiosInstance.post('/tenant/payments', {
+      console.log('Making payment:', { amount, description, leaseId, razorpayData });
+      
+      const paymentData = {
         amount,
         description,
-        leaseId,
-        paymentMethodId
-      });
+        leaseId
+      };
+      
+      // If Razorpay data is provided, add it to the request
+      if (razorpayData) {
+        console.log('Including Razorpay payment data:', razorpayData);
+        paymentData.razorpayPaymentId = razorpayData.razorpayPaymentId;
+        paymentData.razorpayOrderId = razorpayData.razorpayOrderId || razorpayData.razorpay_order_id;
+        paymentData.razorpaySignature = razorpayData.razorpaySignature || razorpayData.razorpay_signature;
+        paymentData.paymentMethod = 'RAZORPAY';
+        
+        // Include property details if available
+        if (razorpayData.propertyDetails) {
+          console.log('Including property details:', razorpayData.propertyDetails);
+          paymentData.propertyDetails = razorpayData.propertyDetails;
+        }
+      } 
+      // If using an existing payment method
+      else if (paymentMethodId) {
+        paymentData.paymentMethodId = paymentMethodId;
+      }
+      
+      console.log('Final payment request payload:', paymentData);
+      const response = await axiosInstance.post('/tenant/payments', paymentData);
+      console.log('Payment response:', response.data);
       return response.data;
     } catch (error) {
+      console.error('Payment error:', error);
+      if (error.response) {
+        console.error('Error status:', error.response.status);
+        console.error('Error data:', error.response.data);
+      }
       throw error;
     }
   },
@@ -88,6 +117,55 @@ const paymentService = {
       });
       return response.data;
     } catch (error) {
+      throw error;
+    }
+  },
+
+  // Create Razorpay order for lease payment
+  createRazorpayOrder: async (amount, leaseId, description) => {
+    try {
+      console.log('Creating Razorpay order for lease payment:', { amount, leaseId, description });
+      console.log('Making request to:', '/tenant/payments/razorpay/create-order');
+      
+      const requestData = {
+        amount,
+        leaseId,
+        description
+      };
+      console.log('Request payload:', requestData);
+      
+      const response = await axiosInstance.post('/tenant/payments/razorpay/create-order', requestData);
+      console.log('Razorpay order creation successful:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Error creating Razorpay order:', error);
+      console.error('Response status:', error.response?.status);
+      console.error('Response data:', error.response?.data);
+      throw error;
+    }
+  },
+
+  // Verify Razorpay payment
+  verifyRazorpayPayment: async (paymentId, orderId, signature, leaseId) => {
+    try {
+      console.log('Verifying Razorpay payment:', { paymentId, orderId, signature, leaseId });
+      console.log('Making request to:', '/tenant/payments/razorpay/verify');
+      
+      const requestData = {
+        razorpayPaymentId: paymentId,
+        razorpayOrderId: orderId,
+        razorpaySignature: signature,
+        leaseId
+      };
+      console.log('Request payload:', requestData);
+      
+      const response = await axiosInstance.post('/tenant/payments/razorpay/verify', requestData);
+      console.log('Razorpay verification successful:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Error verifying Razorpay payment:', error);
+      console.error('Response status:', error.response?.status);
+      console.error('Response data:', error.response?.data);
       throw error;
     }
   },
@@ -204,6 +282,8 @@ const getUpcomingPaymentsForTenant = paymentService.getUpcomingPaymentsForTenant
 const getUpcomingPayments = paymentService.getUpcomingPaymentsForTenant;
 const makePayment = paymentService.makePayment;
 const makePaymentWithNewCard = paymentService.makePaymentWithNewCard;
+const createRazorpayOrder = paymentService.createRazorpayOrder;
+const verifyRazorpayPayment = paymentService.verifyRazorpayPayment;
 const recordPayment = paymentService.recordPayment;
 const getPaymentReceiptUrl = paymentService.getPaymentReceiptUrl;
 const getLandlordPaymentStats = paymentService.getLandlordPaymentStats;
@@ -225,6 +305,8 @@ export {
   getUpcomingPayments, // Export the alias
   makePayment,
   makePaymentWithNewCard,
+  createRazorpayOrder,
+  verifyRazorpayPayment,
   recordPayment,
   getPaymentReceiptUrl,
   getLandlordPaymentStats,

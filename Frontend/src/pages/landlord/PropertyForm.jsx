@@ -30,10 +30,12 @@ const PropertyForm = () => {
     city: '',
     state: '',
     propertyType: '',
+    listingType: 'FOR_RENT',
     totalArea: '',
     numberOfBedrooms: '',
     numberOfBathrooms: '',
     monthlyRent: '',
+    salePrice: '',
     securityDeposit: '',
     availableFrom: '',
     available: true,
@@ -114,7 +116,25 @@ const PropertyForm = () => {
     }
   }, [property.images]);
   
-  const propertyTypes = propertyService.getPropertyTypes();
+  const propertyTypes = [
+    'APARTMENT',
+    'HOUSE',
+    'CONDO',
+    'TOWNHOUSE',
+    'STUDIO',
+    'DUPLEX',
+    'TRIPLEX',
+    'FOURPLEX',
+    'COMMERCIAL',
+    'INDUSTRIAL',
+    'LAND'
+  ];
+  
+  const listingTypes = [
+    { value: 'FOR_RENT', label: 'For Rent' },
+    { value: 'FOR_SALE', label: 'For Sale' },
+    { value: 'BOTH', label: 'For Rent & Sale' }
+  ];
   
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -256,6 +276,16 @@ const PropertyForm = () => {
           }
           
           setSuccess('Image uploaded successfully to Cloudinary!');
+          
+          // Save property with updated images to database
+          if (isEditing && property.id) {
+            const updatedPropertyData = {
+              ...property,
+              images: [...property.images, imageUrl]
+            };
+            await propertyService.updateProperty(id, updatedPropertyData);
+            setSuccess('Image uploaded and saved to database successfully!');
+          }
         } catch (err) {
           console.warn('Error in single image upload:', err);
           setError('Image upload encountered an issue, but we\'ve added a placeholder instead.');
@@ -272,14 +302,52 @@ const PropertyForm = () => {
       else if (multipleFiles.length > 0) {
         try {
           setUploadProgress(10); // Show initial progress
-          const result = await propertyService.uploadPropertyImages(property.id, multipleFiles);
-          setUploadProgress(100); // Complete progress
           
-          if (result && result.imageUrls) {
+          // If we're editing an existing property, use the property ID for direct upload
+          if (isEditing && property.id) {
+            const result = await propertyService.uploadPropertyImages(property.id, multipleFiles);
+            setUploadProgress(100); // Complete progress
+            
+            if (result && result.imageUrls) {
+              // Add all URLs to the property images
+              setProperty(prev => ({
+                ...prev,
+                images: [...prev.images, ...result.imageUrls]
+              }));
+              
+              // Reset file input and progress
+              if (multipleFileInputRef.current) {
+                multipleFileInputRef.current.value = '';
+              }
+              setMultipleFiles([]);
+              setSuccess(`${result.imageUrls.length} images uploaded successfully. ${result.message || ''}`);
+              
+              // No need to manually update the database here as the backend API already does this
+            } else {
+              setError('Unexpected response format from image upload service.');
+            }
+          } else {
+            // For new properties, we need to upload the images first and then save them with the property later
+            const uploadedUrls = [];
+            
+            // Upload each file individually
+            for (const file of multipleFiles) {
+              const reader = new FileReader();
+              const imagePromise = new Promise((resolve) => {
+                reader.onload = async (e) => {
+                  const base64Data = e.target.result;
+                  const imageUrl = await propertyService.uploadPropertyImage(base64Data);
+                  resolve(imageUrl);
+                };
+              });
+              reader.readAsDataURL(file);
+              uploadedUrls.push(await imagePromise);
+            }
+            
             // Add all URLs to the property images
             setProperty(prev => ({
               ...prev,
-              images: [...prev.images, ...result.imageUrls]
+              images: [...prev.images, ...uploadedUrls]
             }));
             
             // Reset file input and progress
@@ -287,9 +355,7 @@ const PropertyForm = () => {
               multipleFileInputRef.current.value = '';
             }
             setMultipleFiles([]);
-            setSuccess(`${result.imageUrls.length} images uploaded successfully. ${result.message || ''}`);
-          } else {
-            setError('Unexpected response format from image upload service.');
+            setSuccess(`${uploadedUrls.length} images uploaded successfully.`);
           }
         } catch (err) {
           console.warn('Error in multiple image upload:', err);
@@ -315,11 +381,37 @@ const PropertyForm = () => {
     }
   };
   
-  const handleImageRemove = (index) => {
+  const handleImageRemove = async (index) => {
+    // First update the local state
     setProperty(prev => ({
       ...prev,
       images: prev.images.filter((_, i) => i !== index)
     }));
+    
+    // If we're editing an existing property, update it in the database
+    if (isEditing && id) {
+      try {
+        setLoading(true);
+        
+        // Get the updated images array
+        const updatedImages = property.images.filter((_, i) => i !== index);
+        
+        // Create updated property data
+        const updatedPropertyData = {
+          ...property,
+          images: updatedImages
+        };
+        
+        // Save to database
+        await propertyService.updateProperty(id, updatedPropertyData);
+        setSuccess('Image removed and changes saved to database.');
+      } catch (err) {
+        console.error('Error saving image removal to database:', err);
+        setError('Image was removed from view but there was an error saving this change to the database.');
+      } finally {
+        setLoading(false);
+      }
+    }
   };
   
   const handleCancelImagePreview = () => {
@@ -531,6 +623,23 @@ const PropertyForm = () => {
               ))}
             </select>
           </div>
+          
+          <div className="form-group">
+            <label htmlFor="listingType">
+              Listing Type <span className="required">*</span>
+            </label>
+            <select
+              id="listingType"
+              name="listingType"
+              value={property.listingType}
+              onChange={handleInputChange}
+              required
+            >
+              {listingTypes.map(type => (
+                <option key={type.value} value={type.value}>{type.label}</option>
+              ))}
+            </select>
+          </div>
         </div>
         
         <div className="form-section">
@@ -633,85 +742,78 @@ const PropertyForm = () => {
         </div>
         
         <div className="form-section">
-          <h2><FaRupeeSign /> Pricing & Availability</h2>
+          <h2><FaRupeeSign /> Pricing Details</h2>
           
-          <div className="form-row">
-            <div className="form-group">
-              <label htmlFor="monthlyRent">
-                Monthly Rent <span className="required">*</span>
-              </label>
-              <div className="input-with-icon">
-                <FaRupeeSign className="input-icon" />
-                <input
-                  id="monthlyRent"
-                  name="monthlyRent"
-                  type="text"
-                  value={property.monthlyRent}
-                  onChange={handleNumberInputChange}
-                  placeholder="e.g., 15000"
-                  required
-                />
-              </div>
-            </div>
-            
-            <div className="form-group">
-              <label htmlFor="securityDeposit">
-                Security Deposit
-              </label>
-              <div className="input-with-icon">
-                <FaRupeeSign className="input-icon" />
-                <input
-                  id="securityDeposit"
-                  name="securityDeposit"
-                  type="text"
-                  value={property.securityDeposit}
-                  onChange={handleNumberInputChange}
-                  placeholder="e.g., 45000"
-                />
-              </div>
-            </div>
-          </div>
-          
-          <div className="form-row">
-            <div className="form-group">
-              <label htmlFor="availableFrom">
-                Available From
-              </label>
-              <div className="input-with-icon">
-                <FaCalendarAlt className="input-icon" />
-                <input
-                  id="availableFrom"
-                  name="availableFrom"
-                  type="date"
-                  value={property.availableFrom}
-                  onChange={handleInputChange}
-                />
-              </div>
-            </div>
-            
-            <div className="form-group checkbox-group">
-              <div className="checkbox-container">
-                <input
-                  id="available"
-                  name="available"
-                  type="checkbox"
-                  checked={property.available}
-                  onChange={handleInputChange}
-                />
-                <label htmlFor="available">Available for rent</label>
+          {(property.listingType === 'FOR_RENT' || property.listingType === 'BOTH') && (
+            <div className="form-row">
+              <div className="form-group">
+                <label htmlFor="monthlyRent">
+                  Monthly Rent (₹) <span className="required">*</span>
+                </label>
+                <div className="input-with-icon">
+                  <FaRupeeSign className="input-icon" />
+                  <input
+                    id="monthlyRent"
+                    name="monthlyRent"
+                    type="text"
+                    value={property.monthlyRent}
+                    onChange={handleNumberInputChange}
+                    placeholder="e.g., 15000"
+                    required={property.listingType === 'FOR_RENT' || property.listingType === 'BOTH'}
+                  />
+                </div>
               </div>
               
-              <div className="checkbox-container">
-                <input
-                  id="active"
-                  name="active"
-                  type="checkbox"
-                  checked={property.active}
-                  onChange={handleInputChange}
-                />
-                <label htmlFor="active">Active listing</label>
+              <div className="form-group">
+                <label htmlFor="securityDeposit">
+                  Security Deposit (₹)
+                </label>
+                <div className="input-with-icon">
+                  <FaRupeeSign className="input-icon" />
+                  <input
+                    id="securityDeposit"
+                    name="securityDeposit"
+                    type="text"
+                    value={property.securityDeposit}
+                    onChange={handleNumberInputChange}
+                    placeholder="e.g., 30000"
+                  />
+                </div>
               </div>
             </div>
+          )}
+          
+          {(property.listingType === 'FOR_SALE' || property.listingType === 'BOTH') && (
+            <div className="form-group">
+              <label htmlFor="salePrice">
+                Sale Price (₹) <span className="required">*</span>
+              </label>
+              <div className="input-with-icon">
+                <FaRupeeSign className="input-icon" />
+                <input
+                  id="salePrice"
+                  name="salePrice"
+                  type="text"
+                  value={property.salePrice}
+                  onChange={handleNumberInputChange}
+                  placeholder="e.g., 5000000"
+                  required={property.listingType === 'FOR_SALE' || property.listingType === 'BOTH'}
+                />
+              </div>
+            </div>
+          )}
+          
+          <div className="form-group">
+            <label htmlFor="availableFrom">
+              Available From
+            </label>
+            <input
+              id="availableFrom"
+              name="availableFrom"
+              type="date"
+              value={property.availableFrom}
+              onChange={handleInputChange}
+            />
           </div>
         </div>
         

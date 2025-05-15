@@ -5,6 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import Button from '../common/Button';
 import { makePayment, getTenantPaymentMethods } from '../../services/paymentService';
 import { getTenantLease } from '../../services/leaseService';
+import RazorpayLeasePayment from './RazorpayLeasePayment';
 import {
   Box,
   Container,
@@ -25,7 +26,8 @@ import {
   RadioGroup,
   FormControlLabel,
   Radio,
-  InputAdornment
+  InputAdornment,
+  Divider
 } from '@mui/material';
 import CreditCardIcon from '@mui/icons-material/CreditCard';
 import PaymentIcon from '@mui/icons-material/Payment';
@@ -41,6 +43,7 @@ const PaymentForm = () => {
   const [lease, setLease] = useState(null);
   const [paymentMethods, setPaymentMethods] = useState([]);
   const [showAddCard, setShowAddCard] = useState(false);
+  const [showRazorpay, setShowRazorpay] = useState(false);
   
   const [formData, setFormData] = useState({
     amount: '',
@@ -240,6 +243,18 @@ const PaymentForm = () => {
     }
   };
 
+  const handlePayWithRazorpay = (e) => {
+    e.preventDefault();
+    setError(null);
+    
+    if (!formData.amount || !formData.leaseId) {
+      setError('Please fill all required fields');
+      return;
+    }
+    
+    setShowRazorpay(true);
+  };
+
   const getCardIcon = (type) => {
     switch (type?.toLowerCase()) {
       case 'visa':
@@ -306,7 +321,7 @@ const PaymentForm = () => {
   }
 
   return (
-    <Container component="main" maxWidth="md">
+    <Container maxWidth="md" className="payment-form-container">
       <Paper elevation={3} sx={{ p: 4, mt: 4, mb: 4, borderRadius: 2 }}>
         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <Typography component="h1" variant="h5" gutterBottom>
@@ -530,28 +545,58 @@ const PaymentForm = () => {
               </Grid>
             </Grid>
             
-            <Button
-              type="submit"
-              fullWidth
-              variant="contained"
-              color="primary"
-              sx={{ mt: 3, mb: 2 }}
-              startIcon={<PaymentIcon />}
-              disabled={isLoading || isSubmitting}
-            >
-              {isSubmitting ? (
-                <CircularProgress size={24} />
-              ) : (
-                `Pay ₹${parseFloat(formData.amount || 0).toFixed(2)}`
-              )}
-            </Button>
+            <Divider sx={{ my: 3 }} />
             
-            <Typography variant="caption" color="text.secondary" align="center" display="block">
-              Secure payment processing. Your card details are protected with industry-standard encryption.
+            <Typography variant="h6" gutterBottom>
+              Payment Methods
             </Typography>
+            
+            <Grid container spacing={2} sx={{ mt: 2 }}>
+              <Grid item xs={12} sm={6}>
+                <Button
+                  type="submit"
+                  fullWidth
+                  variant="primary"
+                  disabled={isSubmitting}
+                  icon={<CreditCardIcon />}
+                >
+                  {isSubmitting ? 'Processing...' : 'Pay with Card'}
+                </Button>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Button
+                  type="button"
+                  fullWidth
+                  variant="secondary"
+                  onClick={handlePayWithRazorpay}
+                  disabled={isSubmitting}
+                  icon={<PaymentIcon />}
+                >
+                  Pay with Razorpay
+                </Button>
+              </Grid>
+            </Grid>
           </Box>
         </Box>
       </Paper>
+      
+      {showRazorpay && (
+        <RazorpayLeasePayment
+          open={showRazorpay}
+          onClose={(success) => {
+            setShowRazorpay(false);
+            if (success) {
+              // Redirect to payment history if payment was successful
+              navigate('/tenant/payments/history', {
+                state: { message: 'Payment completed successfully!' }
+              });
+            }
+          }}
+          lease={lease}
+          amount={parseFloat(formData.amount)}
+          description={formData.description}
+        />
+      )}
     </Container>
   );
 };

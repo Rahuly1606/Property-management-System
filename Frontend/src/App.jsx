@@ -27,10 +27,18 @@ import AdminDashboard from './pages/admin/Dashboard';
 import LandlordDashboard from './pages/landlord/Dashboard';
 import ManageProperties from './pages/landlord/ManageProperties';
 import PropertyForm from './pages/landlord/PropertyForm';
+import SoldProperties from './pages/landlord/SoldProperties';
+import ManageLeases from './pages/landlord/ManageLeases';
+import LandlordLeaseDetails from './pages/landlord/LeaseDetails';
+import ManageMaintenance from './pages/landlord/ManageMaintenance';
 
 // Tenant Pages
 import TenantDashboard from './pages/tenant/Dashboard';
 import BrowseProperties from './pages/tenant/BrowseProperties';
+import PurchasedProperties from './pages/tenant/PurchasedProperties';
+import LeaseProperties from './pages/tenant/LeaseProperties';
+import LeaseDetails from './pages/tenant/LeaseDetails';
+import TenantMaintenance from './pages/tenant/TenantMaintenance';
 
 // Property Details Page (shared)
 import PropertyDetails from './pages/PropertyDetails';
@@ -38,16 +46,22 @@ import PropertyDetails from './pages/PropertyDetails';
 // Messaging Component
 import Messenger from './components/messaging/Messenger';
 
-// Maintenance Component
+// Maintenance Components
 import MaintenanceRequestForm from './components/maintenance/MaintenanceRequestForm';
 
-// Payment Integration
+// Payment Components
 import PaymentRoutes from './routes/PaymentRoutes';
 import PaymentForm from './components/payments/PaymentForm';
+import MakePaymentForm from './components/payment/MakePaymentForm';
+import PaymentHistory from './components/payments/PaymentHistory';
+import PaymentOverview from './components/payments/PaymentOverview';
 
+// CSS imports
 import './App.css';
 import './styles/currency.css';
+import './styles/responsive.css';
 import PurchaseRequestsPage from './pages/PurchaseRequestsPage';
+import TestAuth from './components/property/TestAuth';
 
 function App() {
   return (
@@ -82,9 +96,19 @@ function App() {
                   <Route path="landlord/properties/add" element={<PropertyForm />} />
                   <Route path="landlord/properties/:id" element={<PropertyDetails />} />
                   <Route path="landlord/properties/edit/:id" element={<PropertyForm />} />
-                  <Route path="landlord/leases" element={<div>Leases Management Page</div>} />
-                  <Route path="landlord/payments" element={<div>Payments Management Page</div>} />
-                  <Route path="landlord/maintenance" element={<div>Maintenance Requests Management Page</div>} />
+                  <Route path="landlord/sold-properties" element={<SoldProperties />} />
+                  <Route path="landlord/leases" element={<ManageLeases />} />
+                  <Route path="landlord/leases/:id" element={<LandlordLeaseDetails />} />
+                  
+                  {/* Landlord Payment Routes */}
+                  <Route path="landlord/payments" element={<PaymentOverview />} />
+                  <Route path="landlord/payments/history" element={<PaymentHistory />} />
+                  <Route path="landlord/payments/:id" element={<div>Payment Details Page</div>} />
+                  
+                  {/* Landlord Maintenance Routes */}
+                  <Route path="landlord/maintenance" element={<ManageMaintenance />} />
+                  <Route path="landlord/maintenance/:id" element={<div>Maintenance Request Details Page</div>} />
+                  
                   <Route path="landlord/tenants" element={<div>Tenants Management Page</div>} />
                   <Route path="landlord/settings" element={<div>Landlord Settings Page</div>} />
                 </Route>
@@ -93,11 +117,23 @@ function App() {
                 <Route element={<ProtectedRoute allowedRoles={['TENANT']} />}>
                   <Route path="tenant/dashboard" element={<TenantDashboard />} />
                   <Route path="tenant/browse-properties" element={<BrowseProperties />} />
-                  <Route path="tenant/lease" element={<div>Lease Details Page</div>} />
-                  <Route path="tenant/payments/*" element={<PaymentRoutes />} />
-                  <Route path="tenant/maintenance" element={<div>Maintenance Requests Page</div>} />
+                  <Route path="tenant/purchased-properties" element={<PurchasedProperties />} />
+                  <Route path="tenant/leased-properties" element={<LeaseProperties />} />
+                  <Route path="tenant/lease" element={<LeaseDetails />} />
+                  <Route path="tenant/lease/:id" element={<LeaseDetails />} />
+                  
+                  {/* Tenant Payment Routes */}
+                  <Route path="tenant/payments" element={<PaymentOverview />} />
+                  <Route path="tenant/payments/make-payment" element={<MakePaymentForm />} />
+                  <Route path="tenant/payments/make-payment/:leaseId" element={<MakePaymentForm />} />
+                  <Route path="tenant/payments/history" element={<PaymentHistory />} />
+                  <Route path="tenant/payments/:id" element={<div>Payment Details Page</div>} />
+                  
+                  {/* Tenant Maintenance Routes */}
+                  <Route path="tenant/maintenance" element={<TenantMaintenance />} />
                   <Route path="tenant/maintenance/new" element={<MaintenanceRequestForm />} />
                   <Route path="tenant/maintenance/:id" element={<div>Maintenance Request Details Page</div>} />
+                  
                   <Route path="tenant/application/new" element={<div>New Rental Application Page</div>} />
                   <Route path="tenant/settings" element={<div>Tenant Settings Page</div>} />
                 </Route>
@@ -118,6 +154,9 @@ function App() {
                     </ProtectedRoute>
                   }
                 />
+                
+                {/* Test Auth Route */}
+                <Route path="/test-auth" element={<TestAuth />} />
                 
                 {/* Catch all route */}
                 <Route path="*" element={<NotFound />} />

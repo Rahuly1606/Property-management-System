@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Outlet, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { FaHome, FaBuilding, FaUser, FaBars, FaTimes, FaSignOutAlt, FaInbox, FaBell, FaList, FaPlus, FaSearch } from 'react-icons/fa';
+import { FaHome, FaBuilding, FaUser, FaBars, FaTimes, FaSignOutAlt, FaInbox, FaBell, FaList, FaPlus, FaSearch, FaEnvelope, FaPhone, FaMapMarkerAlt, FaFacebook, FaTwitter, FaInstagram, FaLinkedin, FaTools, FaFileContract, FaCreditCard } from 'react-icons/fa';
 import './Layout.css';
 
 const Layout = () => {
@@ -58,18 +58,22 @@ const Layout = () => {
         { to: '/landlord/dashboard', icon: <FaHome />, text: 'Dashboard' },
         { to: '/landlord/properties', icon: <FaBuilding />, text: 'Manage Properties' },
         { to: '/landlord/properties/add', icon: <FaPlus />, text: 'Add Property' },
-        { to: '/landlord/leases', icon: <FaList />, text: 'Leases' },
-        { to: '/landlord/payments', icon: <FaBuilding />, text: 'Payments' },
-        { to: '/landlord/maintenance', icon: <FaBuilding />, text: 'Maintenance' },
+        { to: '/landlord/sold-properties', icon: <FaBuilding />, text: 'Sold Properties' },
+        { to: '/purchase-requests', icon: <FaList />, text: 'Purchase Requests' },
+        { to: '/landlord/leases', icon: <FaFileContract />, text: 'Leases' },
+        { to: '/landlord/payments', icon: <FaCreditCard />, text: 'Payments' },
+        { to: '/landlord/maintenance', icon: <FaTools />, text: 'Maintenance' },
         { to: '/landlord/tenants', icon: <FaUser />, text: 'Tenants' },
         { to: '/landlord/settings', icon: <FaUser />, text: 'Settings' }
       ],
       TENANT: [
         { to: '/tenant/dashboard', icon: <FaHome />, text: 'Dashboard' },
         { to: '/tenant/browse-properties', icon: <FaSearch />, text: 'Browse Properties' },
-        { to: '/tenant/lease', icon: <FaList />, text: 'My Lease' },
-        { to: '/tenant/payments', icon: <FaBuilding />, text: 'Payments' },
-        { to: '/tenant/maintenance', icon: <FaBuilding />, text: 'Maintenance' },
+        { to: '/tenant/purchased-properties', icon: <FaBuilding />, text: 'Purchased Properties' },
+        { to: '/purchase-requests', icon: <FaList />, text: 'Purchase Requests' },
+        { to: '/tenant/lease', icon: <FaFileContract />, text: 'My Lease' },
+        { to: '/tenant/payments', icon: <FaCreditCard />, text: 'Payments' },
+        { to: '/tenant/maintenance', icon: <FaTools />, text: 'Maintenance' },
         { to: '/tenant/settings', icon: <FaUser />, text: 'Settings' }
       ]
     };
@@ -160,12 +164,33 @@ const Layout = () => {
       {/* Footer */}
       <footer className="footer">
         <div className="footer-content">
-          <p>&copy; {new Date().getFullYear()} Property Management System</p>
+          <div className="footer-main">
+            <div className="footer-brand">
+              <h3>Property Management System</h3>
+              <div className="footer-social">
+                <a href="#" aria-label="Facebook"><FaFacebook /></a>
+                <a href="#" aria-label="Twitter"><FaTwitter /></a>
+                <a href="#" aria-label="Instagram"><FaInstagram /></a>
+                <a href="#" aria-label="LinkedIn"><FaLinkedin /></a>
+              </div>
+            </div>
+            
+            <div className="footer-contact">
+              <p><FaPhone /> +1 (123) 456-7890</p>
+              <p><FaEnvelope /> info@propertymanagementsystem.com</p>
+            </div>
+          </div>
+          
           <div className="footer-links">
-            <Link to="/about">About Us</Link>
+            <Link to="/about">About</Link>
             <Link to="/contact">Contact</Link>
-            <Link to="/privacy">Privacy Policy</Link>
-            <Link to="/terms">Terms of Service</Link>
+            <Link to="/privacy">Privacy</Link>
+            <Link to="/terms">Terms</Link>
+            <Link to="/faq">FAQ</Link>
+          </div>
+          
+          <div className="footer-copyright">
+            <p>&copy; {new Date().getFullYear()} Property Management System</p>
           </div>
         </div>
       </footer>

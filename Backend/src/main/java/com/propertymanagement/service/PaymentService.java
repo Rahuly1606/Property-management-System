@@ -48,11 +48,17 @@ public interface PaymentService {
     Payment generateInvoice(Long leaseId, BigDecimal amount, String description,
                          LocalDate dueDate, User user);
     
+    // Razorpay payment processing
+    Payment recordRazorpayPayment(Payment payment);
+    
     // Receipt generation
     Resource generateReceipt(Long paymentId);
     
     // Statistics
     Map<String, Object> getPaymentStatsByLandlord(User landlord);
+    
+    // Count pending payments for landlord dashboard
+    long countPendingPaymentsByLandlord(User landlord);
     
     // Payment methods
     List<PaymentMethodDTO> findPaymentMethodsByUser(User user);

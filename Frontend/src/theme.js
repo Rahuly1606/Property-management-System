@@ -1,6 +1,18 @@
 import { createTheme } from '@mui/material/styles';
 
+// Define breakpoints for responsive design
+const breakpoints = {
+  values: {
+    xs: 0,
+    sm: 576,
+    md: 768,
+    lg: 992,
+    xl: 1200,
+  },
+};
+
 const theme = createTheme({
+  breakpoints,
   palette: {
     primary: {
       main: '#1976d2',
@@ -49,22 +61,49 @@ const theme = createTheme({
     h1: {
       fontSize: '2.5rem',
       fontWeight: 500,
+      '@media (max-width:768px)': {
+        fontSize: '2rem',
+      },
+      '@media (max-width:576px)': {
+        fontSize: '1.75rem',
+      },
     },
     h2: {
       fontSize: '2rem',
       fontWeight: 500,
+      '@media (max-width:768px)': {
+        fontSize: '1.75rem',
+      },
+      '@media (max-width:576px)': {
+        fontSize: '1.5rem',
+      },
     },
     h3: {
       fontSize: '1.75rem',
       fontWeight: 500,
+      '@media (max-width:768px)': {
+        fontSize: '1.5rem',
+      },
+      '@media (max-width:576px)': {
+        fontSize: '1.25rem',
+      },
     },
     h4: {
       fontSize: '1.5rem',
       fontWeight: 500,
+      '@media (max-width:768px)': {
+        fontSize: '1.25rem',
+      },
+      '@media (max-width:576px)': {
+        fontSize: '1.1rem',
+      },
     },
     h5: {
       fontSize: '1.25rem',
       fontWeight: 500,
+      '@media (max-width:768px)': {
+        fontSize: '1.1rem',
+      },
     },
     h6: {
       fontSize: '1rem',
@@ -73,6 +112,9 @@ const theme = createTheme({
     body1: {
       fontSize: '1rem',
       lineHeight: 1.5,
+      '@media (max-width:576px)': {
+        fontSize: '0.95rem',
+      },
     },
     body2: {
       fontSize: '0.875rem',
@@ -88,6 +130,40 @@ const theme = createTheme({
         root: {
           textTransform: 'none',
           fontWeight: 500,
+        },
+      },
+    },
+    MuiContainer: {
+      styleOverrides: {
+        root: {
+          paddingLeft: '16px',
+          paddingRight: '16px',
+          '@media (min-width: 576px)': {
+            paddingLeft: '24px',
+            paddingRight: '24px',
+          },
+        },
+      },
+    },
+    MuiGrid: {
+      styleOverrides: {
+        container: {
+          marginLeft: '-16px',
+          marginRight: '-16px',
+          width: 'calc(100% + 32px)',
+          '@media (min-width: 576px)': {
+            marginLeft: '-24px',
+            marginRight: '-24px',
+            width: 'calc(100% + 48px)',
+          },
+        },
+        item: {
+          paddingLeft: '16px',
+          paddingRight: '16px',
+          '@media (min-width: 576px)': {
+            paddingLeft: '24px',
+            paddingRight: '24px',
+          },
         },
       },
     },

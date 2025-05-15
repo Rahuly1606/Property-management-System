@@ -3,6 +3,7 @@ package com.propertymanagement.service.impl;
 import com.propertymanagement.exception.ResourceNotFoundException;
 import com.propertymanagement.model.Lease;
 import com.propertymanagement.model.LeaseStatus;
+import com.propertymanagement.model.LeaseType;
 import com.propertymanagement.model.Property;
 import com.propertymanagement.model.User;
 import com.propertymanagement.repository.LeaseRepository;
@@ -34,6 +35,26 @@ public class LeaseServiceImpl extends BaseServiceImpl<Lease, LeaseRepository> im
         lease.setTenant(tenant);
         lease.setLandlord(landlord);
         lease.setStatus(LeaseStatus.PENDING_SIGNATURE);
+        
+        // Handle null values
+        if (lease.getMonthlyRent() == null && property.getMonthlyRent() != null) {
+            lease.setMonthlyRent(property.getMonthlyRent());
+        }
+        
+        if (lease.getSecurityDeposit() == null && property.getMonthlyRent() != null) {
+            // Default to 2 months rent for security deposit
+            lease.setSecurityDeposit(property.getMonthlyRent().multiply(new java.math.BigDecimal(2)));
+        }
+        
+        // Set default lease type if null
+        if (lease.getLeaseType() == null) {
+            lease.setLeaseType(LeaseType.FIXED_TERM);
+        }
+        
+        // Set default payment due date if null
+        if (lease.getPaymentDueDay() == null) {
+            lease.setPaymentDueDay(1); // Default to 1st of month
+        }
         
         return repository.save(lease);
     }

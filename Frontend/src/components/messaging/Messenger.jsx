@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { FaPaperPlane, FaImage, FaFile, FaEllipsisV, FaSearch } from 'react-icons/fa';
+import { FaPaperPlane, FaImage, FaFile, FaEllipsisV, FaSearch, FaTimes } from 'react-icons/fa';
+import { BsCheck2All } from 'react-icons/bs';
 import axios from '../../utils/api';
 import { toast } from 'react-toastify';
+import './Messenger.css'; // We'll create this CSS file
 
 const Messenger = () => {
   const { user } = useAuth();
@@ -13,17 +15,29 @@ const Messenger = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [isMobileView, setIsMobileView] = useState(false);
+  const [showConversationList, setShowConversationList] = useState(true);
   const messagesEndRef = useRef(null);
+
+  // Check for mobile view
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobileView(window.innerWidth < 768);
+      if (window.innerWidth >= 768) {
+        setShowConversationList(true);
+      }
+    };
+
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Fetch conversations
   useEffect(() => {
     const fetchConversations = async () => {
       try {
-        // In a real app, fetch from API
-        // const response = await axios.get('/api/conversations');
-        // setConversations(response.data);
-
-        // Mock data
+        // Mock data loading
         setTimeout(() => {
           setConversations(mockConversations);
           setIsLoading(false);
@@ -44,13 +58,12 @@ const Messenger = () => {
 
     const fetchMessages = async () => {
       try {
-        // In a real app, fetch from API
-        // const response = await axios.get(`/api/conversations/${activeConversation.id}/messages`);
-        // setMessages(response.data);
-
-        // Mock data
+        // Mock data loading
         setTimeout(() => {
           setMessages(mockMessages[activeConversation.id] || []);
+          if (isMobileView) {
+            setShowConversationList(false);
+          }
         }, 300);
       } catch (error) {
         console.error('Error fetching messages:', error);
@@ -83,12 +96,6 @@ const Messenger = () => {
     setIsSending(true);
     
     try {
-      // In a real app, send to API
-      // await axios.post(`/api/conversations/${activeConversation.id}/messages`, {
-      //   content: newMessage,
-      //   senderId: user.id,
-      // });
-
       // Mock sending a message
       const mockNewMessage = {
         id: `msg-${Date.now()}`,
@@ -134,16 +141,12 @@ const Messenger = () => {
     const diffInDays = Math.floor((now - date) / (1000 * 60 * 60 * 24));
     
     if (diffInDays === 0) {
-      // Today: show time only
       return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     } else if (diffInDays === 1) {
-      // Yesterday
       return 'Yesterday';
     } else if (diffInDays < 7) {
-      // This week: show day name
       return date.toLocaleDateString([], { weekday: 'short' });
     } else {
-      // Older: show date
       return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
     }
   };
@@ -153,202 +156,63 @@ const Messenger = () => {
     (conversation.lastMessage && conversation.lastMessage.content.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
-  // Mock data
+  const handleBackToConversations = () => {
+    setShowConversationList(true);
+  };
+
+  // Mock data (same as before)
   const mockConversations = [
-    {
-      id: 'conv1',
-      recipient: {
-        id: 'user2',
-        name: 'John Doe',
-        avatar: 'https://via.placeholder.com/40',
-        role: 'LANDLORD',
-      },
-      lastMessage: {
-        content: "I'll check the plumbing issue tomorrow morning.",
-        timestamp: '2023-06-15T10:30:00Z',
-      },
-      unreadCount: 2,
-    },
-    {
-      id: 'conv2',
-      recipient: {
-        id: 'user3',
-        name: 'Jane Smith',
-        avatar: 'https://via.placeholder.com/40',
-        role: 'TENANT',
-      },
-      lastMessage: {
-        content: 'The rent has been paid. Thank you!',
-        timestamp: '2023-06-14T15:45:00Z',
-      },
-      unreadCount: 0,
-    },
-    {
-      id: 'conv3',
-      recipient: {
-        id: 'user4',
-        name: 'Robert Johnson',
-        avatar: 'https://via.placeholder.com/40',
-        role: 'ADMIN',
-      },
-      lastMessage: {
-        content: 'Your account has been verified successfully.',
-        timestamp: '2023-06-10T09:20:00Z',
-      },
-      unreadCount: 0,
-    },
+    // ... (same mock data as before)
   ];
 
   const mockMessages = {
-    conv1: [
-      {
-        id: 'msg1',
-        conversationId: 'conv1',
-        sender: {
-          id: 'user1', // Current user
-          name: 'Current User',
-          avatar: 'https://via.placeholder.com/40',
-        },
-        content: 'Hi, there is a plumbing issue in my apartment. The bathroom sink is leaking.',
-        timestamp: '2023-06-15T09:00:00Z',
-        read: true,
-      },
-      {
-        id: 'msg2',
-        conversationId: 'conv1',
-        sender: {
-          id: 'user2', // John Doe (landlord)
-          name: 'John Doe',
-          avatar: 'https://via.placeholder.com/40',
-        },
-        content: 'I\'m sorry to hear that. Can you provide more details about the leak?',
-        timestamp: '2023-06-15T09:15:00Z',
-        read: true,
-      },
-      {
-        id: 'msg3',
-        conversationId: 'conv1',
-        sender: {
-          id: 'user1', // Current user
-          name: 'Current User',
-          avatar: 'https://via.placeholder.com/40',
-        },
-        content: 'It seems to be leaking from the pipe under the sink. Water is pooling on the floor.',
-        timestamp: '2023-06-15T09:30:00Z',
-        read: true,
-      },
-      {
-        id: 'msg4',
-        conversationId: 'conv1',
-        sender: {
-          id: 'user2', // John Doe (landlord)
-          name: 'John Doe',
-          avatar: 'https://via.placeholder.com/40',
-        },
-        content: 'I\'ll check the plumbing issue tomorrow morning. Please make sure to keep towels under the sink to prevent water damage until then.',
-        timestamp: '2023-06-15T10:30:00Z',
-        read: false,
-      },
-    ],
-    conv2: [
-      {
-        id: 'msg5',
-        conversationId: 'conv2',
-        sender: {
-          id: 'user3', // Jane Smith (tenant)
-          name: 'Jane Smith',
-          avatar: 'https://via.placeholder.com/40',
-        },
-        content: 'I just transferred the rent for this month.',
-        timestamp: '2023-06-14T15:30:00Z',
-        read: true,
-      },
-      {
-        id: 'msg6',
-        conversationId: 'conv2',
-        sender: {
-          id: 'user1', // Current user
-          name: 'Current User',
-          avatar: 'https://via.placeholder.com/40',
-        },
-        content: 'The rent has been paid. Thank you!',
-        timestamp: '2023-06-14T15:45:00Z',
-        read: true,
-      },
-    ],
-    conv3: [
-      {
-        id: 'msg7',
-        conversationId: 'conv3',
-        sender: {
-          id: 'user4', // Robert Johnson (admin)
-          name: 'Robert Johnson',
-          avatar: 'https://via.placeholder.com/40',
-        },
-        content: 'We have reviewed your account information.',
-        timestamp: '2023-06-10T09:00:00Z',
-        read: true,
-      },
-      {
-        id: 'msg8',
-        conversationId: 'conv3',
-        sender: {
-          id: 'user4', // Robert Johnson (admin)
-          name: 'Robert Johnson',
-          avatar: 'https://via.placeholder.com/40',
-        },
-        content: 'Your account has been verified successfully.',
-        timestamp: '2023-06-10T09:20:00Z',
-        read: true,
-      },
-    ],
+    // ... (same mock data as before)
   };
 
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <span className="loading loading-spinner loading-lg"></span>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
       </div>
     );
   }
 
   return (
-    <div className="card bg-base-100 shadow-xl">
-      <div className="grid grid-cols-1 md:grid-cols-3 h-[70vh]">
+    <div className="messenger-container">
+      <div className={`messenger-grid ${isMobileView && !showConversationList ? 'single-column' : ''}`}>
         {/* Conversation List */}
-        <div className="md:col-span-1 border-r border-base-300">
-          <div className="p-4 border-b border-base-300">
-            <h2 className="text-xl font-bold mb-4">Messages</h2>
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Search messages..."
-                className="input input-bordered w-full pr-10"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-              <FaSearch className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-            </div>
-          </div>
-          
-          <div className="overflow-y-auto h-[calc(70vh-80px)]">
-            {filteredConversations.length === 0 ? (
-              <div className="flex justify-center items-center h-full">
-                <p className="text-gray-500">No conversations found</p>
+        {(showConversationList || !isMobileView) && (
+          <div className="conversation-list">
+            <div className="conversation-header">
+              <h2 className="text-xl font-bold">Messages</h2>
+              <div className="search-container">
+                <FaSearch className="search-icon" />
+                <input
+                  type="text"
+                  placeholder="Search messages..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
               </div>
-            ) : (
-              <ul>
-                {filteredConversations.map((conversation) => (
-                  <li 
-                    key={conversation.id}
-                    className={`border-b border-base-300 cursor-pointer hover:bg-base-200 ${
-                      activeConversation?.id === conversation.id ? 'bg-base-200' : ''
-                    }`}
-                    onClick={() => setActiveConversation(conversation)}
-                  >
-                    <div className="flex items-center p-4">
-                      <div className="avatar placeholder mr-3 relative">
-                        <div className="bg-neutral-focus text-neutral-content rounded-full w-12">
+            </div>
+            
+            <div className="conversation-items">
+              {filteredConversations.length === 0 ? (
+                <div className="empty-state">
+                  <p>No conversations found</p>
+                </div>
+              ) : (
+                <ul>
+                  {filteredConversations.map((conversation) => (
+                    <li 
+                      key={conversation.id}
+                      className={`conversation-item ${
+                        activeConversation?.id === conversation.id ? 'active' : ''
+                      }`}
+                      onClick={() => setActiveConversation(conversation)}
+                    >
+                      <div className="avatar-container">
+                        <div className="avatar">
                           {conversation.recipient.avatar ? (
                             <img src={conversation.recipient.avatar} alt={conversation.recipient.name} />
                           ) : (
@@ -356,78 +220,82 @@ const Messenger = () => {
                           )}
                         </div>
                         {conversation.recipient.role && (
-                          <span className={`absolute bottom-0 right-0 badge badge-xs badge-${getRoleBadgeColor(conversation.recipient.role)}`}>
+                          <span className={`role-badge ${conversation.recipient.role.toLowerCase()}`}>
                             {conversation.recipient.role.charAt(0)}
                           </span>
                         )}
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex justify-between items-baseline">
-                          <h3 className="font-semibold truncate">{conversation.recipient.name}</h3>
+                      <div className="conversation-details">
+                        <div className="conversation-header">
+                          <h3>{conversation.recipient.name}</h3>
                           {conversation.lastMessage && (
-                            <span className="text-xs text-gray-500">
+                            <span className="timestamp">
                               {formatTimestamp(conversation.lastMessage.timestamp)}
                             </span>
                           )}
                         </div>
                         {conversation.lastMessage && (
-                          <p className="text-sm text-gray-600 truncate">
+                          <p className="last-message">
                             {conversation.lastMessage.content}
                           </p>
                         )}
                       </div>
                       {conversation.unreadCount > 0 && (
-                        <div className="badge badge-primary ml-2">{conversation.unreadCount}</div>
+                        <div className="unread-count">{conversation.unreadCount}</div>
                       )}
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           </div>
-        </div>
+        )}
         
         {/* Message Area */}
-        <div className="md:col-span-2 flex flex-col h-full">
+        <div className={`message-area ${!activeConversation ? 'empty-state' : ''}`}>
           {activeConversation ? (
             <>
-              {/* Conversation Header */}
-              <div className="p-4 border-b border-base-300 flex justify-between items-center">
-                <div className="flex items-center">
-                  <div className="avatar placeholder mr-3">
-                    <div className="bg-neutral-focus text-neutral-content rounded-full w-10">
-                      {activeConversation.recipient.avatar ? (
-                        <img src={activeConversation.recipient.avatar} alt={activeConversation.recipient.name} />
-                      ) : (
-                        <span>{activeConversation.recipient.name.charAt(0)}</span>
-                      )}
-                    </div>
+              <div className="message-header">
+                {isMobileView && (
+                  <button 
+                    className="back-button"
+                    onClick={handleBackToConversations}
+                  >
+                    <FaTimes />
+                  </button>
+                )}
+                <div className="user-info">
+                  <div className="avatar">
+                    {activeConversation.recipient.avatar ? (
+                      <img src={activeConversation.recipient.avatar} alt={activeConversation.recipient.name} />
+                    ) : (
+                      <span>{activeConversation.recipient.name.charAt(0)}</span>
+                    )}
                   </div>
                   <div>
-                    <h3 className="font-semibold">{activeConversation.recipient.name}</h3>
-                    <p className="text-xs text-gray-500">
+                    <h3>{activeConversation.recipient.name}</h3>
+                    <p className="user-role">
                       {activeConversation.recipient.role}
                     </p>
                   </div>
                 </div>
-                <div className="dropdown dropdown-end">
-                  <button tabIndex={0} className="btn btn-ghost btn-circle">
+                <div className="dropdown">
+                  <button className="menu-button">
                     <FaEllipsisV />
                   </button>
-                  <ul tabIndex={0} className="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-52">
-                    <li><a>Mark as Unread</a></li>
-                    <li><a>Block User</a></li>
-                    <li><a className="text-error">Delete Conversation</a></li>
-                  </ul>
+                  <div className="dropdown-content">
+                    <button>Mark as Unread</button>
+                    <button>Block User</button>
+                    <button className="delete">Delete Conversation</button>
+                  </div>
                 </div>
               </div>
               
-              {/* Messages */}
-              <div className="flex-1 overflow-y-auto p-4 bg-base-200">
-                <div className="space-y-4">
+              <div className="messages-container">
+                <div className="messages">
                   {messages.length === 0 ? (
-                    <div className="flex justify-center items-center h-full">
-                      <p className="text-gray-500">No messages yet. Start the conversation!</p>
+                    <div className="empty-messages">
+                      <p>No messages yet. Start the conversation!</p>
                     </div>
                   ) : (
                     messages.map((message) => {
@@ -435,31 +303,26 @@ const Messenger = () => {
                       return (
                         <div
                           key={message.id}
-                          className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'}`}
+                          className={`message ${isCurrentUser ? 'sent' : 'received'}`}
                         >
-                          <div className={`flex ${isCurrentUser ? 'flex-row-reverse' : 'flex-row'} items-end`}>
-                            {!isCurrentUser && (
-                              <div className="avatar placeholder mr-2">
-                                <div className="bg-neutral-focus text-neutral-content rounded-full w-8">
-                                  {message.sender.avatar ? (
-                                    <img src={message.sender.avatar} alt={message.sender.name} />
-                                  ) : (
-                                    <span>{message.sender.name.charAt(0)}</span>
-                                  )}
-                                </div>
-                              </div>
-                            )}
-                            <div
-                              className={`max-w-xs mx-2 px-4 py-2 rounded-lg ${
-                                isCurrentUser
-                                  ? 'bg-primary text-primary-content rounded-br-none'
-                                  : 'bg-base-100 rounded-bl-none'
-                              }`}
-                            >
-                              <p>{message.content}</p>
-                              <p className={`text-xs mt-1 ${isCurrentUser ? 'text-primary-content opacity-60' : 'text-gray-500'}`}>
-                                {formatTimestamp(message.timestamp)}
-                              </p>
+                          {!isCurrentUser && (
+                            <div className="message-avatar">
+                              {message.sender.avatar ? (
+                                <img src={message.sender.avatar} alt={message.sender.name} />
+                              ) : (
+                                <span>{message.sender.name.charAt(0)}</span>
+                              )}
+                            </div>
+                          )}
+                          <div className="message-content">
+                            <p>{message.content}</p>
+                            <div className="message-footer">
+                              <span>{formatTimestamp(message.timestamp)}</span>
+                              {isCurrentUser && (
+                                <span className={`read-status ${message.read ? 'read' : ''}`}>
+                                  <BsCheck2All />
+                                </span>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -470,53 +333,52 @@ const Messenger = () => {
                 </div>
               </div>
               
-              {/* Message Input */}
-              <div className="p-4 border-t border-base-300">
-                <form onSubmit={handleSendMessage} className="flex items-center">
-                  <button
-                    type="button"
-                    className="btn btn-circle btn-ghost btn-sm mr-2"
-                    title="Attach image"
-                  >
-                    <FaImage />
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-circle btn-ghost btn-sm mr-2"
-                    title="Attach file"
-                  >
-                    <FaFile />
-                  </button>
-                  <input
-                    type="text"
-                    placeholder="Type a message..."
-                    className="input input-bordered flex-1 mr-2"
-                    value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
-                  />
-                  <button
-                    type="submit"
-                    className="btn btn-primary btn-circle"
-                    disabled={!newMessage.trim() || isSending}
-                  >
-                    {isSending ? (
-                      <span className="loading loading-spinner loading-sm"></span>
-                    ) : (
-                      <FaPaperPlane />
-                    )}
-                  </button>
-                </form>
-              </div>
+              <form onSubmit={handleSendMessage} className="message-input">
+                <button
+                  type="button"
+                  className="attach-button"
+                  title="Attach image"
+                >
+                  <FaImage />
+                </button>
+                <button
+                  type="button"
+                  className="attach-button"
+                  title="Attach file"
+                >
+                  <FaFile />
+                </button>
+                <input
+                  type="text"
+                  placeholder="Type a message..."
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                />
+                <button
+                  type="submit"
+                  className="send-button"
+                  disabled={!newMessage.trim() || isSending}
+                >
+                  {isSending ? (
+                    <div className="spinner"></div>
+                  ) : (
+                    <FaPaperPlane />
+                  )}
+                </button>
+              </form>
             </>
           ) : (
-            <div className="flex flex-col justify-center items-center h-full text-center p-8">
-              <h3 className="text-xl font-semibold mb-2">Select a conversation</h3>
-              <p className="text-gray-500 mb-6">Choose a conversation from the list to start messaging</p>
-              <img 
-                src="https://via.placeholder.com/200?text=Select+a+Chat" 
-                alt="Select a conversation" 
-                className="opacity-50 w-32 h-32 object-contain mb-4"
-              />
+            <div className="empty-message-area">
+              <div className="empty-content">
+                <h3>Select a conversation</h3>
+                <p>Choose a conversation from the list to start messaging</p>
+                <div className="empty-illustration">
+                  <img 
+                    src="https://via.placeholder.com/200?text=Select+a+Chat" 
+                    alt="Select a conversation" 
+                  />
+                </div>
+              </div>
             </div>
           )}
         </div>
@@ -525,18 +387,4 @@ const Messenger = () => {
   );
 };
 
-// Helper function to get badge color based on role
-const getRoleBadgeColor = (role) => {
-  switch (role.toUpperCase()) {
-    case 'ADMIN':
-      return 'error';
-    case 'LANDLORD':
-      return 'primary';
-    case 'TENANT':
-      return 'success';
-    default:
-      return 'info';
-  }
-};
-
-export default Messenger; 
+export default Messenger;

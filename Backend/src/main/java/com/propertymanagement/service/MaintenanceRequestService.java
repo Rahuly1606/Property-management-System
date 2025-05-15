@@ -51,6 +51,9 @@ public interface MaintenanceRequestService {
     
     int countPendingRequestsByTenant(User tenant);
     
+    // For dashboard
+    long countActiveRequestsByLandlord(User landlord);
+    
     // DTO conversion
     MaintenanceRequestDTO convertToDTO(MaintenanceRequest request);
     

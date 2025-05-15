@@ -1,4 +1,5 @@
 import React from 'react';
+import './Button.css';
 
 const Button = ({
   children,
@@ -8,59 +9,31 @@ const Button = ({
   className = '',
   disabled = false,
   onClick,
+  icon,
+  iconPosition = 'left',
+  fullWidth = false,
   ...props
 }) => {
-  const getVariantClass = () => {
-    switch (variant) {
-      case 'primary':
-        return 'btn-primary';
-      case 'secondary':
-        return 'btn-secondary';
-      case 'accent':
-        return 'btn-accent';
-      case 'info':
-        return 'btn-info';
-      case 'success':
-        return 'btn-success';
-      case 'warning':
-        return 'btn-warning';
-      case 'error':
-        return 'btn-error';
-      case 'ghost':
-        return 'btn-ghost';
-      case 'link':
-        return 'btn-link';
-      case 'outline':
-        return 'btn-outline';
-      default:
-        return 'btn-primary';
-    }
-  };
-
-  const getSizeClass = () => {
-    switch (size) {
-      case 'xs':
-        return 'btn-xs';
-      case 'sm':
-        return 'btn-sm';
-      case 'md':
-        return '';
-      case 'lg':
-        return 'btn-lg';
-      default:
-        return '';
-    }
-  };
+  const buttonClasses = [
+    'custom-button',
+    `btn-${variant}`,
+    `btn-${size}`,
+    disabled ? 'disabled' : '',
+    fullWidth ? 'full-width' : '',
+    className
+  ].filter(Boolean).join(' ');
 
   return (
     <button
       type={type}
-      className={`btn ${getVariantClass()} ${getSizeClass()} ${className}`}
+      className={buttonClasses}
       disabled={disabled}
       onClick={onClick}
       {...props}
     >
-      {children}
+      {icon && iconPosition === 'left' && <span className="btn-icon left">{icon}</span>}
+      <span className="btn-text">{children}</span>
+      {icon && iconPosition === 'right' && <span className="btn-icon right">{icon}</span>}
     </button>
   );
 };

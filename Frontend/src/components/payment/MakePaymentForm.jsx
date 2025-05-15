@@ -37,6 +37,7 @@ import {
 import paymentService from '../../services/paymentService';
 import leaseService from '../../services/leaseService';
 import authService from '../../services/authService';
+import RazorpayLeasePayment from '../payments/RazorpayLeasePayment';
 
 const MakePaymentForm = () => {
   const { leaseId } = useParams();
@@ -63,6 +64,7 @@ const MakePaymentForm = () => {
   const [success, setSuccess] = useState(null);
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
+  const [showRazorpay, setShowRazorpay] = useState(false);
   
   useEffect(() => {
     const user = authService.getCurrentUser();
@@ -309,6 +311,18 @@ const MakePaymentForm = () => {
   
   const handleDialogClose = () => {
     setConfirmDialogOpen(false);
+  };
+  
+  const handlePayWithRazorpay = () => {
+    if (!validateForm()) {
+      return;
+    }
+    
+    // Close the confirmation dialog if it's open
+    setConfirmDialogOpen(false);
+    
+    // Use the RazorpayLeasePayment component to handle Razorpay integration
+    setShowRazorpay(true);
   };
   
   // Return empty or error state if not a tenant
@@ -643,10 +657,36 @@ const MakePaymentForm = () => {
             variant="contained"
             disabled={loading}
           >
-            {loading ? <CircularProgress size={24} /> : 'Confirm Payment'}
+            {loading ? <CircularProgress size={24} /> : 'Pay with Card'}
+          </Button>
+          <Button
+            onClick={handlePayWithRazorpay}
+            color="secondary"
+            variant="contained"
+            disabled={loading}
+          >
+            Pay with Razorpay
           </Button>
         </DialogActions>
       </Dialog>
+      
+      {showRazorpay && (
+        <RazorpayLeasePayment
+          open={showRazorpay}
+          onClose={(success) => {
+            setShowRazorpay(false);
+            if (success) {
+              // Redirect to payment history if payment was successful
+              navigate('/tenant/payments/history', {
+                state: { message: 'Payment completed successfully!' }
+              });
+            }
+          }}
+          lease={leaseDetails}
+          amount={parseFloat(paymentData.amount)}
+          description={paymentData.description}
+        />
+      )}
     </Container>
   );
 };

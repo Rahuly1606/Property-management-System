@@ -74,6 +74,70 @@ public class PropertyController {
         return ResponseEntity.ok(mapper.toDTO(propertyService.updateProperty(id, property)));
     }
     
+    @PutMapping("/{id}/prices")
+    @PreAuthorize("hasRole('LANDLORD')")
+    public ResponseEntity<PropertyDTO> updatePropertyPrices(
+            @PathVariable Long id,
+            @RequestBody Map<String, Object> priceData) {
+        
+        if (!propertyService.isPropertyOwnedBy(id, userService.getCurrentUser())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        
+        Property property = propertyService.findById(id);
+        
+        // Update monthly rent if provided
+        if (priceData.containsKey("monthlyRent")) {
+            Object monthlyRentObj = priceData.get("monthlyRent");
+            if (monthlyRentObj == null) {
+                property.setMonthlyRent(null);
+            } else {
+                try {
+                    BigDecimal monthlyRent = new BigDecimal(monthlyRentObj.toString());
+                    property.setMonthlyRent(monthlyRent);
+                } catch (NumberFormatException e) {
+                    logger.error("Invalid monthly rent format: {}", monthlyRentObj);
+                    return ResponseEntity.badRequest().build();
+                }
+            }
+        }
+        
+        // Update sale price if provided
+        if (priceData.containsKey("salePrice")) {
+            Object salePriceObj = priceData.get("salePrice");
+            if (salePriceObj == null) {
+                property.setSalePrice(null);
+            } else {
+                try {
+                    BigDecimal salePrice = new BigDecimal(salePriceObj.toString());
+                    property.setSalePrice(salePrice);
+                } catch (NumberFormatException e) {
+                    logger.error("Invalid sale price format: {}", salePriceObj);
+                    return ResponseEntity.badRequest().build();
+                }
+            }
+        }
+        
+        // Update security deposit if provided
+        if (priceData.containsKey("securityDeposit")) {
+            Object securityDepositObj = priceData.get("securityDeposit");
+            if (securityDepositObj == null) {
+                property.setSecurityDeposit(null);
+            } else {
+                try {
+                    BigDecimal securityDeposit = new BigDecimal(securityDepositObj.toString());
+                    property.setSecurityDeposit(securityDeposit);
+                } catch (NumberFormatException e) {
+                    logger.error("Invalid security deposit format: {}", securityDepositObj);
+                    return ResponseEntity.badRequest().build();
+                }
+            }
+        }
+        
+        Property updatedProperty = propertyService.updateProperty(id, property);
+        return ResponseEntity.ok(mapper.toDTO(updatedProperty));
+    }
+    
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('LANDLORD')")
     public ResponseEntity<Void> deleteProperty(@PathVariable Long id) {

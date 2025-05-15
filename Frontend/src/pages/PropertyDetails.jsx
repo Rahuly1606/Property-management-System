@@ -9,11 +9,13 @@ import propertyService from '../services/propertyService';
 import { useAuth } from '../contexts/AuthContext';
 import './PropertyDetails.css';
 import BuyPropertyButton from '../components/property/BuyPropertyButton';
+import LeaseButton from '../components/property/LeaseButton';
+import PropertyPlaceholder from '../components/common/PropertyPlaceholder';
 
 const PropertyDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { isLandlord, isTenant, currentUser, getCurrentUser } = useAuth();
+  const auth = useAuth();
   
   const [property, setProperty] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -30,8 +32,12 @@ const PropertyDetails = () => {
   const [contactError, setContactError] = useState('');
   
   // Either use getCurrentUser() function or the current user from context directly
-  const user = getCurrentUser ? getCurrentUser() : currentUser;
+  const user = auth.getCurrentUser ? auth.getCurrentUser() : auth.currentUser;
   const isOwner = user && property?.landlordId === user.id;
+  
+  // Use the functions correctly
+  const isTenant = auth.isTenant();
+  const isLandlord = auth.isLandlord();
   
   useEffect(() => {
     const fetchProperty = async () => {
@@ -215,8 +221,7 @@ const PropertyDetails = () => {
             </>
           ) : (
             <div className="placeholder-image">
-              <FaBuilding />
-              <p>No images available</p>
+              <PropertyPlaceholder height="400px" text="No images available" />
             </div>
           )}
         </div>
@@ -230,8 +235,20 @@ const PropertyDetails = () => {
             </div>
             
             <div className="property-price">
-              <FaRupeeSign />
-              <span>{formatCurrency(property.monthlyRent)}/month</span>
+              {(property.listingType === 'FOR_RENT' || property.listingType === 'BOTH') && (
+                <div className="price-item">
+                  <FaRupeeSign />
+                  <span>{formatCurrency(property.monthlyRent)}/month</span>
+                </div>
+              )}
+              
+              {(property.listingType === 'FOR_SALE' || property.listingType === 'BOTH') && (
+                <div className="price-item sale-price">
+                  <FaRupeeSign />
+                  <span>{formatCurrency(property.salePrice)}</span>
+                  {property.listingType === 'BOTH' && <span className="price-label">Sale Price</span>}
+                </div>
+              )}
             </div>
             
             {property.available ? (
@@ -332,7 +349,7 @@ const PropertyDetails = () => {
           </div>
           
           {/* Contact Section - Show only for tenants or unauthenticated users when property is available */}
-          {((typeof isTenant === 'boolean' && isTenant) || !user) && property.available && (
+          {(isTenant || !user) && property.available && !isOwner && (
             <div className="contact-section">
               {showContactForm ? (
                 <div className="contact-form-container">
@@ -427,14 +444,26 @@ const PropertyDetails = () => {
             </div>
           )}
           
-          {/* Add Buy Property Button for tenants */}
-          {isTenant && property.available && (
+          {/* Add Buy Property Button for tenants - make sure landlords can't see this */}
+          {isTenant && !isLandlord && property.available && (property.listingType === 'FOR_SALE' || property.listingType === 'BOTH') && (
             <div className="buy-property-section">
               <h2>Interested in buying?</h2>
               <BuyPropertyButton
                 propertyId={property.id}
                 propertyTitle={property.title}
-                price={property.monthlyRent * 12} // Calculating yearly price
+                price={property.salePrice}
+              />
+            </div>
+          )}
+
+          {/* Add Lease Property Button for tenants - make sure landlords can't see this */}
+          {isTenant && !isLandlord && property.available && (property.listingType === 'FOR_RENT' || property.listingType === 'BOTH') && (
+            <div className="lease-property-section">
+              <h2>Interested in leasing?</h2>
+              <LeaseButton
+                propertyId={property.id}
+                propertyTitle={property.title}
+                monthlyRent={property.monthlyRent}
               />
             </div>
           )}

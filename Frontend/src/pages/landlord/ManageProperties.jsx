@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { FaPlus, FaEdit, FaToggleOn, FaToggleOff, FaEye, FaBuilding, FaBed, FaBath, FaRulerCombined, FaRupeeSign, FaMapMarkerAlt, FaBug } from 'react-icons/fa';
+import { FaPlus, FaEdit, FaToggleOn, FaToggleOff, FaEye, FaBuilding, FaBed, FaBath, FaRulerCombined, FaRupeeSign, FaMapMarkerAlt, FaBug, FaSearch, FaSort, FaSortUp, FaSortDown } from 'react-icons/fa';
 import propertyService from '../../services/propertyService';
 import { useAuth } from '../../contexts/AuthContext';
 import { toggleMockDataMode, isMockDataModeEnabled } from '../../utils/mockData';
@@ -18,6 +18,10 @@ const ManageProperties = () => {
   const [totalPages, setTotalPages] = useState(0);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [mockModeEnabled, setMockModeEnabled] = useState(isMockDataModeEnabled());
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortField, setSortField] = useState('createdAt');
+  const [sortDirection, setSortDirection] = useState('desc');
+  const [animateCards, setAnimateCards] = useState(false);
   const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
   
   useEffect(() => {
@@ -47,10 +51,17 @@ const ManageProperties = () => {
         setLoading(true);
         const response = await propertyService.getMyProperties({
           page, 
-          size
+          size,
+          sort: `${sortField},${sortDirection}`,
+          search: searchTerm
         });
         setProperties(response.content || []);
         setTotalPages(response.totalPages || 0);
+        
+        // Trigger animation after data is loaded
+        setTimeout(() => {
+          setAnimateCards(true);
+        }, 100);
       } catch (err) {
         console.error('Error fetching properties:', err);
         if (err.response && err.response.status === 403) {
@@ -66,7 +77,10 @@ const ManageProperties = () => {
     };
     
     fetchProperties();
-  }, [isLandlord, navigate, page, size, refreshTrigger]);
+    
+    // Reset animation state when dependencies change
+    setAnimateCards(false);
+  }, [isLandlord, navigate, page, size, refreshTrigger, sortField, sortDirection, searchTerm]);
   
   const handleToggleAvailability = async (propertyId) => {
     try {
@@ -88,6 +102,27 @@ const ManageProperties = () => {
     setRefreshTrigger(prev => prev + 1);
   };
   
+  const handleSort = (field) => {
+    if (sortField === field) {
+      // Toggle direction if same field
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      // Default to desc for new field
+      setSortField(field);
+      setSortDirection('desc');
+    }
+  };
+  
+  const handleSearchChange = (e) => {
+    setSearchTerm(e.target.value);
+  };
+  
+  const handleSearchSubmit = (e) => {
+    e.preventDefault();
+    setPage(0); // Reset to first page on new search
+    setRefreshTrigger(prev => prev + 1);
+  };
+  
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-IN', {
       style: 'decimal',
@@ -96,10 +131,18 @@ const ManageProperties = () => {
     }).format(amount);
   };
   
+  const getSortIcon = (field) => {
+    if (sortField !== field) return <FaSort className="sort-icon" />;
+    return sortDirection === 'asc' ? <FaSortUp className="sort-icon active" /> : <FaSortDown className="sort-icon active" />;
+  };
+  
   if (loading && properties.length === 0) {
     return (
       <div className="manage-properties-container">
-        <div className="loading-indicator">Loading your properties...</div>
+        <div className="loading-container">
+          <div className="loading-spinner"></div>
+          <div className="loading-text">Loading your properties...</div>
+        </div>
       </div>
     );
   }
@@ -124,6 +167,39 @@ const ManageProperties = () => {
         </div>
       </div>
       
+      <div className="property-filters">
+        <form onSubmit={handleSearchSubmit} className="search-form">
+          <div className="search-input-container">
+            <input 
+              type="text" 
+              placeholder="Search properties..." 
+              value={searchTerm}
+              onChange={handleSearchChange}
+              className="search-input"
+            />
+            <button type="submit" className="search-btn">
+              <FaSearch />
+            </button>
+          </div>
+        </form>
+        
+        <div className="sort-controls">
+          <span className="sort-label">Sort by:</span>
+          <button 
+            className={`sort-btn ${sortField === 'monthlyRent' ? 'active' : ''}`} 
+            onClick={() => handleSort('monthlyRent')}
+          >
+            Price {sortField === 'monthlyRent' && (sortDirection === 'asc' ? '↑' : '↓')}
+          </button>
+          <button 
+            className={`sort-btn ${sortField === 'createdAt' ? 'active' : ''}`}
+            onClick={() => handleSort('createdAt')}
+          >
+            Date {sortField === 'createdAt' && (sortDirection === 'asc' ? '↑' : '↓')}
+          </button>
+        </div>
+      </div>
+      
       {error && <div className="error-message">{error}</div>}
       
       {properties.length === 0 ? (
@@ -135,8 +211,12 @@ const ManageProperties = () => {
       ) : (
         <>
           <div className="property-grid">
-            {properties.map((property) => (
-              <div key={property.id} className="property-card">
+            {properties.map((property, index) => (
+              <div 
+                key={property.id} 
+                className={`property-card ${animateCards ? 'animate' : ''}`}
+                style={{ animationDelay: `${index * 0.1}s` }}
+              >
                 <div className="property-card-header">
                   <h3>{property.title}</h3>
                   <div className="property-actions">
@@ -170,6 +250,7 @@ const ManageProperties = () => {
                       src={property.images[0]} 
                       alt={property.title} 
                       className="property-image"
+                      loading="lazy"
                     />
                   ) : (
                     <div className="property-image-placeholder">

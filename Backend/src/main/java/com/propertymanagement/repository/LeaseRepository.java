@@ -7,6 +7,8 @@ import com.propertymanagement.model.User;
 import com.propertymanagement.repository.base.BaseRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
@@ -47,4 +49,7 @@ public interface LeaseRepository extends BaseRepository<Lease> {
     long countByTenantAndStatus(User tenant, LeaseStatus status);
     
     long countByLandlordAndStatus(User landlord, LeaseStatus status);
+    
+    @Query("SELECT COUNT(DISTINCT l.tenant.id) FROM Lease l WHERE l.landlord.id = :landlordId")
+    long countDistinctTenantsByLandlord(@Param("landlordId") Long landlordId);
 } 

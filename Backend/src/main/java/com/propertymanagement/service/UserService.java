@@ -38,4 +38,9 @@ public interface UserService extends BaseService<User> {
      * Checks if a user has a specific role
      */
     boolean hasRole(User user, String role);
+    
+    /**
+     * Counts tenants associated with a landlord's properties
+     */
+    long countTenantsByLandlord(User landlord);
 } 

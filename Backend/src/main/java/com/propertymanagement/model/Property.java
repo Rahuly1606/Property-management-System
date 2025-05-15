@@ -32,6 +32,10 @@ public class Property extends BaseEntity {
     @Enumerated(EnumType.STRING)
     private PropertyType propertyType;
     
+    @Column(name = "listing_type", nullable = false)
+    @Enumerated(EnumType.STRING)
+    private ListingType listingType = ListingType.FOR_RENT;
+    
     @Column(name = "total_area")
     private Double totalArea;
     
@@ -41,8 +45,11 @@ public class Property extends BaseEntity {
     @Column(name = "number_of_bathrooms")
     private Integer numberOfBathrooms;
     
-    @Column(name = "monthly_rent", nullable = false)
+    @Column(name = "monthly_rent")
     private BigDecimal monthlyRent;
+    
+    @Column(name = "sale_price")
+    private BigDecimal salePrice;
     
     @Column(name = "security_deposit")
     private BigDecimal securityDeposit;
@@ -84,6 +91,9 @@ public class Property extends BaseEntity {
     
     @OneToMany(mappedBy = "property", cascade = CascadeType.ALL)
     private List<PropertyInspection> inspections;
+    
+    @OneToMany(mappedBy = "property", cascade = CascadeType.ALL)
+    private List<PropertyPurchaseRequest> purchaseRequests;
     
     // Manual getters and setters to avoid Lombok issues
     
@@ -135,6 +145,14 @@ public class Property extends BaseEntity {
         this.propertyType = propertyType;
     }
     
+    public ListingType getListingType() {
+        return listingType;
+    }
+    
+    public void setListingType(ListingType listingType) {
+        this.listingType = listingType;
+    }
+    
     public Double getTotalArea() {
         return totalArea;
     }
@@ -165,6 +183,14 @@ public class Property extends BaseEntity {
     
     public void setMonthlyRent(BigDecimal monthlyRent) {
         this.monthlyRent = monthlyRent;
+    }
+    
+    public BigDecimal getSalePrice() {
+        return salePrice;
+    }
+    
+    public void setSalePrice(BigDecimal salePrice) {
+        this.salePrice = salePrice;
     }
     
     public BigDecimal getSecurityDeposit() {
@@ -229,5 +255,45 @@ public class Property extends BaseEntity {
     
     public void setLandlord(User landlord) {
         this.landlord = landlord;
+    }
+    
+    public List<Lease> getLeases() {
+        return leases;
+    }
+    
+    public void setLeases(List<Lease> leases) {
+        this.leases = leases;
+    }
+    
+    public List<MaintenanceRequest> getMaintenanceRequests() {
+        return maintenanceRequests;
+    }
+    
+    public void setMaintenanceRequests(List<MaintenanceRequest> maintenanceRequests) {
+        this.maintenanceRequests = maintenanceRequests;
+    }
+    
+    public List<Payment> getPayments() {
+        return payments;
+    }
+    
+    public void setPayments(List<Payment> payments) {
+        this.payments = payments;
+    }
+    
+    public List<PropertyInspection> getInspections() {
+        return inspections;
+    }
+    
+    public void setInspections(List<PropertyInspection> inspections) {
+        this.inspections = inspections;
+    }
+    
+    public List<PropertyPurchaseRequest> getPurchaseRequests() {
+        return purchaseRequests;
+    }
+    
+    public void setPurchaseRequests(List<PropertyPurchaseRequest> purchaseRequests) {
+        this.purchaseRequests = purchaseRequests;
     }
 } 

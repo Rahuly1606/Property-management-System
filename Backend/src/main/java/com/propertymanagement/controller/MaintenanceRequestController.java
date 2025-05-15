@@ -119,7 +119,7 @@ public class MaintenanceRequestController {
     }
 
     // Update maintenance request status
-    @PatchMapping("/maintenance-requests/{id}/status")
+    @PutMapping("/landlord/maintenance-requests/{id}/status")
     @PreAuthorize("hasAnyRole('ADMIN', 'LANDLORD')")
     public ResponseEntity<MaintenanceRequestDTO> updateMaintenanceRequestStatus(
             @PathVariable Long id, @RequestBody StatusUpdateDTO statusUpdate) {

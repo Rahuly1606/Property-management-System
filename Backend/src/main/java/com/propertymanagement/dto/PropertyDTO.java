@@ -1,6 +1,7 @@
 package com.propertymanagement.dto;
 
 import com.propertymanagement.dto.base.BaseDTO;
+import com.propertymanagement.model.ListingType;
 import com.propertymanagement.model.PropertyType;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -25,6 +26,8 @@ public class PropertyDTO extends BaseDTO {
     
     private PropertyType propertyType;
     
+    private ListingType listingType;
+    
     private Double totalArea;
     
     private Integer numberOfBedrooms;
@@ -32,6 +35,8 @@ public class PropertyDTO extends BaseDTO {
     private Integer numberOfBathrooms;
     
     private BigDecimal monthlyRent;
+    
+    private BigDecimal salePrice;
     
     private BigDecimal securityDeposit;
     
@@ -99,6 +104,14 @@ public class PropertyDTO extends BaseDTO {
         this.propertyType = propertyType;
     }
     
+    public ListingType getListingType() {
+        return listingType;
+    }
+    
+    public void setListingType(ListingType listingType) {
+        this.listingType = listingType;
+    }
+    
     public Double getTotalArea() {
         return totalArea;
     }
@@ -129,6 +142,14 @@ public class PropertyDTO extends BaseDTO {
     
     public void setMonthlyRent(BigDecimal monthlyRent) {
         this.monthlyRent = monthlyRent;
+    }
+    
+    public BigDecimal getSalePrice() {
+        return salePrice;
+    }
+    
+    public void setSalePrice(BigDecimal salePrice) {
+        this.salePrice = salePrice;
     }
     
     public BigDecimal getSecurityDeposit() {
