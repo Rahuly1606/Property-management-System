@@ -1,0 +1,30 @@
+# Dependencies
+node_modules
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+
+# Build files
+dist
+build
+.cache
+
+# Environment files (if any, but allow the Docker env file)
+.env
+.env.local
+.env.*.local
+!.env.docker
+
+# Version control
+.git
+.gitignore
+
+# IDE files
+.idea
+.vscode
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db

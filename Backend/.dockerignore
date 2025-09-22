@@ -1,0 +1,31 @@
+# Maven build files
+target/
+!target/*.jar
+
+# IDE files
+.idea/
+.vscode/
+*.iml
+*.iws
+*.ipr
+.classpath
+.project
+.settings/
+.factorypath
+
+# Git files
+.git/
+.gitignore
+
+# Logs
+*.log
+
+# Temporary files
+temp/
+
+# Test files
+src/test/
+
+# Documentation
+*.md
+!README.md

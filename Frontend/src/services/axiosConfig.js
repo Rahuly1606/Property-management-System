@@ -1,6 +1,7 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:8080/api';
+// In Docker, we'll use the relative path which will be routed through Nginx
+const API_URL = '/api';
 
 // Create axios instance with credentials
 const axiosInstance = axios.create({
@@ -26,22 +27,22 @@ const normalizePath = (path) => {
 
 // Override axios post, get, put, delete methods to normalize paths
 const originalPost = axiosInstance.post;
-axiosInstance.post = function(url, data, config) {
+axiosInstance.post = function (url, data, config) {
   return originalPost.call(this, normalizePath(url), data, config);
 };
 
 const originalGet = axiosInstance.get;
-axiosInstance.get = function(url, config) {
+axiosInstance.get = function (url, config) {
   return originalGet.call(this, normalizePath(url), config);
 };
 
 const originalPut = axiosInstance.put;
-axiosInstance.put = function(url, data, config) {
+axiosInstance.put = function (url, data, config) {
   return originalPut.call(this, normalizePath(url), data, config);
 };
 
 const originalDelete = axiosInstance.delete;
-axiosInstance.delete = function(url, config) {
+axiosInstance.delete = function (url, config) {
   return originalDelete.call(this, normalizePath(url), config);
 };
 
@@ -55,11 +56,11 @@ axiosInstance.interceptors.request.use(
     } else {
       console.warn('No token found in localStorage for request to:', config.url);
     }
-    
+
     // Log user role for debugging
     const userRole = localStorage.getItem('userRole');
     console.log('Current user role:', userRole);
-    
+
     return config;
   },
   (error) => Promise.reject(error)
@@ -95,24 +96,24 @@ axiosInstance.interceptors.response.use(
         return Promise.reject(refreshError);
       }
     }
-    
+
     if (error.response.status === 403) {
       console.error('Access forbidden (403). User might not have the correct role or permissions.');
       const userStr = localStorage.getItem('user');
       const userRole = localStorage.getItem('userRole');
       console.log('Current user data:', userStr);
       console.log('Current user role:', userRole);
-      
+
       // Log more details about the request for debugging
       console.log('Request URL:', originalRequest?.url);
       console.log('Request method:', originalRequest?.method);
-      
+
       // Check if token exists but was rejected
       if (localStorage.getItem('token')) {
         console.error('Token exists but access was denied. You may not have the right permissions.');
       }
     }
-    
+
     return Promise.reject(error);
   }
 );
