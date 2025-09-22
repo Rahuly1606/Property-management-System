@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { 
-    Container, Grid, Typography, Card, CardContent, CardMedia, CardActions, 
+import {
+    Container, Grid, Typography, Card, CardContent, CardMedia, CardActions,
     Button, Box, Chip, CircularProgress, Divider, Alert, Paper, useTheme, alpha
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { propertyPurchaseService } from '../../services/propertyPurchaseService';
 import { useSnackbar } from 'notistack';
-import { 
-    Home as HomeIcon, 
+import {
+    Home as HomeIcon,
     LocationOn as LocationIcon,
     DocumentScanner as DocumentIcon,
     AttachMoney as MoneyIcon
@@ -35,11 +35,20 @@ const SoldProperties = () => {
             setLoading(true);
             const data = await propertyPurchaseService.getSoldProperties();
             console.log('Sold properties:', data);
-            setProperties(data);
+
+            // Check if the response is an array before setting it
+            if (Array.isArray(data)) {
+                setProperties(data);
+            } else {
+                console.error('Unexpected response format:', data);
+                setError('Received invalid data format from server');
+                setProperties([]);
+            }
         } catch (error) {
             console.error('Error fetching sold properties:', error);
             setError('Failed to load sold properties. Please try again.');
             enqueueSnackbar('Failed to load sold properties', { variant: 'error' });
+            setProperties([]);
         } finally {
             setLoading(false);
         }
@@ -56,26 +65,31 @@ const SoldProperties = () => {
             const request = requests.find(
                 req => req.propertyId === propertyId && req.status === 'PAYMENT_COMPLETED'
             );
-            
+
             if (!request) {
                 enqueueSnackbar('Invoice not found for this property', { variant: 'error' });
                 return;
             }
-            
+
             // Get the invoice data
+            if (!Array.isArray(properties)) {
+                enqueueSnackbar('Property details not available', { variant: 'error' });
+                return;
+            }
+
             const property = properties.find(prop => prop.id === propertyId);
             if (!property) {
                 enqueueSnackbar('Property details not found', { variant: 'error' });
                 return;
             }
-            
+
             setSelectedPaymentData({
                 ...request,
                 propertyTitle: property.title,
                 propertyId: property.id,
                 purchasePrice: property.salePrice
             });
-            
+
             setShowInvoice(true);
         } catch (error) {
             console.error('Error fetching invoice:', error);
@@ -96,24 +110,26 @@ const SoldProperties = () => {
     };
 
     // Calculate total sales
-    const totalSales = properties.reduce((sum, property) => sum + (property.salePrice || 0), 0);
+    const totalSales = Array.isArray(properties)
+        ? properties.reduce((sum, property) => sum + (property.salePrice || 0), 0)
+        : 0;
 
     // Animation variants
     const containerVariants = {
         hidden: { opacity: 0 },
-        visible: { 
-            opacity: 1, 
-            transition: { 
+        visible: {
+            opacity: 1,
+            transition: {
                 staggerChildren: 0.1,
-                when: "beforeChildren" 
-            } 
+                when: "beforeChildren"
+            }
         }
     };
-    
+
     const itemVariants = {
         hidden: { y: 20, opacity: 0 },
-        visible: { 
-            y: 0, 
+        visible: {
+            y: 0,
             opacity: 1,
             transition: { type: 'spring', stiffness: 100 }
         }
@@ -121,11 +137,11 @@ const SoldProperties = () => {
 
     const dashboardVariants = {
         hidden: { opacity: 0, scale: 0.95 },
-        visible: { 
-            opacity: 1, 
+        visible: {
+            opacity: 1,
             scale: 1,
-            transition: { 
-                type: 'spring', 
+            transition: {
+                type: 'spring',
                 stiffness: 100,
                 delay: 0.2
             }
@@ -164,7 +180,7 @@ const SoldProperties = () => {
                 transition={{ duration: 0.5 }}
             >
                 <Box sx={{ mb: 4 }}>
-                    <Typography variant="h4" component="h1" gutterBottom sx={{ 
+                    <Typography variant="h4" component="h1" gutterBottom sx={{
                         fontWeight: 'bold',
                         display: 'flex',
                         alignItems: 'center',
@@ -175,8 +191,8 @@ const SoldProperties = () => {
                         <HomeIcon fontSize="large" sx={{ mr: 1, verticalAlign: 'middle' }} />
                         My Sold Properties
                     </Typography>
-                    <Divider sx={{ 
-                        height: '4px', 
+                    <Divider sx={{
+                        height: '4px',
                         background: `linear-gradient(90deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
                         borderRadius: '2px',
                         width: '80px',
@@ -191,16 +207,16 @@ const SoldProperties = () => {
                 initial="hidden"
                 animate="visible"
             >
-                <Paper elevation={3} sx={{ 
-                    p: 3, 
-                    mb: 4, 
-                    bgcolor: 'primary.dark', 
+                <Paper elevation={3} sx={{
+                    p: 3,
+                    mb: 4,
+                    bgcolor: 'primary.dark',
                     color: 'white',
                     borderRadius: '16px',
-                    background: `linear-gradient(135deg, ${theme.palette.primary.dark}, ${theme.palette.secondary.dark})`,
+                    background: `linear-gradient(135deg, #1E40AF, #3B82F6)`,
                     boxShadow: `0 10px 20px ${alpha(theme.palette.primary.main, 0.3)}`
                 }}>
-                    <Typography variant="h5" gutterBottom sx={{ 
+                    <Typography variant="h5" gutterBottom sx={{
                         display: 'flex',
                         alignItems: 'center',
                         fontWeight: 'bold',
@@ -210,11 +226,11 @@ const SoldProperties = () => {
                         Sales Dashboard
                     </Typography>
                     <Grid container spacing={3}>
-                        <Grid item xs={12} sm={6} md={4}>
+                        <Grid xs={12} sm={6} md={4}>
                             <motion.div whileHover={{ scale: 1.05 }} transition={{ type: 'spring', stiffness: 300 }}>
-                                <Box sx={{ 
-                                    bgcolor: 'rgba(255,255,255,0.1)', 
-                                    p: 2.5, 
+                                <Box sx={{
+                                    bgcolor: 'rgba(255,255,255,0.1)',
+                                    p: 2.5,
                                     borderRadius: 3,
                                     backdropFilter: 'blur(10px)',
                                     border: '1px solid rgba(255,255,255,0.2)',
@@ -224,16 +240,16 @@ const SoldProperties = () => {
                                         Total Properties Sold
                                     </Typography>
                                     <Typography variant="h3" sx={{ fontWeight: 'bold' }}>
-                                        {properties.length}
+                                        {Array.isArray(properties) ? properties.length : 0}
                                     </Typography>
                                 </Box>
                             </motion.div>
                         </Grid>
                         <Grid item xs={12} sm={6} md={4}>
                             <motion.div whileHover={{ scale: 1.05 }} transition={{ type: 'spring', stiffness: 300 }}>
-                                <Box sx={{ 
-                                    bgcolor: 'rgba(255,255,255,0.1)', 
-                                    p: 2.5, 
+                                <Box sx={{
+                                    bgcolor: 'rgba(255,255,255,0.1)',
+                                    p: 2.5,
                                     borderRadius: 3,
                                     backdropFilter: 'blur(10px)',
                                     border: '1px solid rgba(255,255,255,0.2)',
@@ -250,9 +266,9 @@ const SoldProperties = () => {
                         </Grid>
                         <Grid item xs={12} sm={6} md={4}>
                             <motion.div whileHover={{ scale: 1.05 }} transition={{ type: 'spring', stiffness: 300 }}>
-                                <Box sx={{ 
-                                    bgcolor: 'rgba(255,255,255,0.1)', 
-                                    p: 2.5, 
+                                <Box sx={{
+                                    bgcolor: 'rgba(255,255,255,0.1)',
+                                    p: 2.5,
                                     borderRadius: 3,
                                     backdropFilter: 'blur(10px)',
                                     border: '1px solid rgba(255,255,255,0.2)',
@@ -262,8 +278,8 @@ const SoldProperties = () => {
                                         Average Property Value
                                     </Typography>
                                     <Typography variant="h3" sx={{ fontWeight: 'bold' }}>
-                                        {properties.length > 0 
-                                            ? formatCurrency(totalSales / properties.length) 
+                                        {Array.isArray(properties) && properties.length > 0
+                                            ? formatCurrency(totalSales / properties.length)
                                             : formatCurrency(0)}
                                     </Typography>
                                 </Box>
@@ -273,7 +289,7 @@ const SoldProperties = () => {
                 </Paper>
             </motion.div>
 
-            {properties.length === 0 ? (
+            {!Array.isArray(properties) || properties.length === 0 ? (
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -290,17 +306,17 @@ const SoldProperties = () => {
                     animate="visible"
                 >
                     <Grid container spacing={3}>
-                        {properties.map((property, index) => (
-                            <Grid item xs={12} sm={6} md={4} key={property.id}>
+                        {Array.isArray(properties) && properties.map((property, index) => (
+                            <Grid xs={12} sm={6} md={4} key={property.id}>
                                 <motion.div
                                     variants={itemVariants}
                                     custom={index}
                                 >
-                                    <Card 
-                                        elevation={3} 
-                                        sx={{ 
-                                            height: '100%', 
-                                            display: 'flex', 
+                                    <Card
+                                        elevation={3}
+                                        sx={{
+                                            height: '100%',
+                                            display: 'flex',
                                             flexDirection: 'column',
                                             borderRadius: '16px',
                                             overflow: 'hidden',
@@ -313,36 +329,36 @@ const SoldProperties = () => {
                                     >
                                         <Box sx={{ position: 'relative' }}>
                                             <CardMedia
-                                                component={property.images && property.images.length > 0 
+                                                component={property.images && property.images.length > 0
                                                     ? "img"
                                                     : PropertyPlaceholder}
                                                 height="220"
-                                                image={property.images && property.images.length > 0 
-                                                    ? property.images[0] 
+                                                image={property.images && property.images.length > 0
+                                                    ? property.images[0]
                                                     : undefined}
                                                 alt={property.title}
-                                                sx={{ 
+                                                sx={{
                                                     transition: 'transform 0.5s',
                                                     '&:hover': {
                                                         transform: 'scale(1.05)'
                                                     }
                                                 }}
                                             />
-                                            <Box sx={{ 
-                                                position: 'absolute', 
-                                                top: 16, 
+                                            <Box sx={{
+                                                position: 'absolute',
+                                                top: 16,
                                                 right: 16,
                                                 zIndex: 1
                                             }}>
-                                                <Chip 
-                                                    label="Sold" 
-                                                    color="success" 
-                                                    size="small" 
-                                                    sx={{ 
+                                                <Chip
+                                                    label="Sold"
+                                                    color="success"
+                                                    size="small"
+                                                    sx={{
                                                         fontWeight: 'bold',
                                                         borderRadius: '50px',
                                                         boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
-                                                    }} 
+                                                    }}
                                                 />
                                             </Box>
                                         </Box>
@@ -359,7 +375,7 @@ const SoldProperties = () => {
                                             <Typography variant="body2" color="text.secondary" sx={{ mb: 2, fontSize: '0.95rem' }}>
                                                 {property.numberOfBedrooms} beds • {property.numberOfBathrooms} baths • {property.totalArea} sq.ft
                                             </Typography>
-                                            <Box sx={{ 
+                                            <Box sx={{
                                                 display: 'flex',
                                                 alignItems: 'center',
                                                 mt: 2,
@@ -368,7 +384,7 @@ const SoldProperties = () => {
                                                 borderRadius: '8px'
                                             }}>
                                                 <MoneyIcon sx={{ color: theme.palette.success.main, mr: 1 }} />
-                                                <Typography variant="h6" sx={{ 
+                                                <Typography variant="h6" sx={{
                                                     color: theme.palette.success.dark,
                                                     fontWeight: 'bold',
                                                     fontSize: '1.25rem'
@@ -377,16 +393,16 @@ const SoldProperties = () => {
                                                 </Typography>
                                             </Box>
                                         </CardContent>
-                                        <CardActions sx={{ 
-                                            p: 2, 
+                                        <CardActions sx={{
+                                            p: 2,
                                             pt: 0,
                                             background: alpha(theme.palette.background.default, 0.6)
                                         }}>
-                                            <Button 
-                                                size="small" 
+                                            <Button
+                                                size="small"
                                                 onClick={() => handleViewProperty(property.id)}
                                                 variant="outlined"
-                                                sx={{ 
+                                                sx={{
                                                     borderRadius: '50px',
                                                     transition: 'all 0.3s',
                                                     '&:hover': {
@@ -397,12 +413,12 @@ const SoldProperties = () => {
                                                 View Details
                                             </Button>
                                             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                                                <Button 
-                                                    size="small" 
-                                                    startIcon={<DocumentIcon />} 
+                                                <Button
+                                                    size="small"
+                                                    startIcon={<DocumentIcon />}
                                                     onClick={() => handleViewInvoice(property.id)}
                                                     color="secondary"
-                                                    sx={{ 
+                                                    sx={{
                                                         borderRadius: '50px',
                                                         ml: 1
                                                     }}
@@ -418,12 +434,12 @@ const SoldProperties = () => {
                     </Grid>
                 </motion.div>
             )}
-            
+
             {/* Custom invoice dialog */}
-            <Invoice 
-                open={showInvoice} 
-                onClose={handleCloseInvoice} 
-                paymentData={selectedPaymentData} 
+            <Invoice
+                open={showInvoice}
+                onClose={handleCloseInvoice}
+                paymentData={selectedPaymentData}
             />
         </Container>
     );

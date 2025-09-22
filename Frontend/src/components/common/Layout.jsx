@@ -25,7 +25,7 @@ const Layout = () => {
   // Get user's full name
   const getUserFullName = () => {
     if (!currentUser) return '';
-    
+
     if (currentUser.firstName && currentUser.lastName) {
       return `${currentUser.firstName} ${currentUser.lastName}`;
     } else if (currentUser.firstName) {
@@ -160,40 +160,6 @@ const Layout = () => {
           <Outlet />
         </main>
       </div>
-
-      {/* Footer */}
-      <footer className="footer">
-        <div className="footer-content">
-          <div className="footer-main">
-            <div className="footer-brand">
-              <h3>Property Management System</h3>
-              <div className="footer-social">
-                <a href="#" aria-label="Facebook"><FaFacebook /></a>
-                <a href="#" aria-label="Twitter"><FaTwitter /></a>
-                <a href="#" aria-label="Instagram"><FaInstagram /></a>
-                <a href="#" aria-label="LinkedIn"><FaLinkedin /></a>
-              </div>
-            </div>
-            
-            <div className="footer-contact">
-              <p><FaPhone /> +1 (123) 456-7890</p>
-              <p><FaEnvelope /> info@propertymanagementsystem.com</p>
-            </div>
-          </div>
-          
-          <div className="footer-links">
-            <Link to="/about">About</Link>
-            <Link to="/contact">Contact</Link>
-            <Link to="/privacy">Privacy</Link>
-            <Link to="/terms">Terms</Link>
-            <Link to="/faq">FAQ</Link>
-          </div>
-          
-          <div className="footer-copyright">
-            <p>&copy; {new Date().getFullYear()} Property Management System</p>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 };

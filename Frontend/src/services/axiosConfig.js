@@ -13,16 +13,16 @@ const axiosInstance = axios.create({
 });
 
 const normalizePath = (path) => {
-  // If path already starts with /api, remove it
+  // If path already starts with /api, don't modify it
   if (path.startsWith('/api/')) {
-    return path.substring(4); // Remove /api prefix
-  }
-  // If path starts with /, return it as is
-  if (path.startsWith('/')) {
     return path;
   }
-  // Otherwise, add / to the beginning
-  return '/' + path;
+  // If path starts with /, add /api prefix
+  if (path.startsWith('/')) {
+    return '/api' + path;
+  }
+  // Otherwise, add /api/ to the beginning
+  return '/api/' + path;
 };
 
 // Override axios post, get, put, delete methods to normalize paths
@@ -68,7 +68,11 @@ axiosInstance.interceptors.request.use(
 
 // Response interceptor to handle token refresh
 axiosInstance.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // We'll simply return the response without additional HTML checking
+    // This will let the actual services handle their responses appropriately
+    return response;
+  },
   async (error) => {
     // Handle case where response doesn't exist (CORS error or network issue)
     if (!error.response) {

@@ -1,101 +1,146 @@
-import { createTheme } from '@mui/material/styles';
+/**
+ * PropertyHub Theme Configuration
+ * 
+ * This file provides a Material-UI theme configuration that aligns with
+ * our design system defined in the CSS variables. This allows components
+ * from Material-UI to work seamlessly with our custom components.
+ */
 
-// Define breakpoints for responsive design
+import { createTheme } from '@mui/material/styles';
+import './styles/theme.css'; // Import our CSS variables
+
+// Define breakpoints for responsive design aligned with our design system
 const breakpoints = {
   values: {
     xs: 0,
-    sm: 576,
-    md: 768,
-    lg: 992,
-    xl: 1200,
+    sm: 375, // Mobile
+    md: 768, // Tablet
+    lg: 1440, // Desktop
+    xl: 1920,
   },
 };
 
+// Create Material-UI theme that matches our design system
 const theme = createTheme({
   breakpoints,
   palette: {
     primary: {
-      main: '#1976d2',
-      light: '#42a5f5',
-      dark: '#1565c0',
-      contrastText: '#fff',
+      // Deep Blue color palette
+      main: '#0F172A', // --color-primary-900
+      light: '#1E293B', // --color-primary-800
+      dark: '#0A0F1A', // Darker than primary-900
+      contrastText: '#FFFFFF',
+      50: '#F8FAFC',
+      100: '#F1F5F9',
+      200: '#E2E8F0',
+      300: '#CBD5E1',
+      400: '#94A3B8',
+      500: '#64748B',
+      600: '#475569',
+      700: '#334155',
+      800: '#1E293B',
+      900: '#0F172A',
     },
     secondary: {
-      main: '#dc004e',
-      light: '#ff4081',
-      dark: '#c51162',
-      contrastText: '#fff',
+      // Warm Accent color palette
+      main: '#FF7A59', // --color-accent-500
+      light: '#FF8F6E', // --color-accent-400
+      dark: '#E66E50', // --color-accent-600
+      contrastText: '#FFFFFF',
+      50: '#FFF7F5',
+      100: '#FFEEE9',
+      200: '#FFD6CA',
+      300: '#FFBEAC',
+      400: '#FF8F6E',
+      500: '#FF7A59',
+      600: '#E66E50',
+      700: '#BF5C43',
+      800: '#994935',
+      900: '#7D3B2C',
     },
     success: {
-      main: '#4caf50',
-      light: '#81c784',
-      dark: '#388e3c',
+      main: '#10B981', // --color-success
+      light: '#34D399',
+      dark: '#059669',
     },
     error: {
-      main: '#f44336',
-      light: '#e57373',
-      dark: '#d32f2f',
+      main: '#EF4444', // --color-error
+      light: '#F87171',
+      dark: '#DC2626',
     },
     warning: {
-      main: '#ff9800',
-      light: '#ffb74d',
-      dark: '#f57c00',
+      main: '#F59E0B', // --color-warning
+      light: '#FBBF24',
+      dark: '#D97706',
     },
     info: {
-      main: '#2196f3',
-      light: '#64b5f6',
-      dark: '#1976d2',
+      main: '#3B82F6', // --color-info
+      light: '#60A5FA',
+      dark: '#2563EB',
     },
     background: {
-      default: '#f5f5f5',
-      paper: '#ffffff',
+      default: '#F9FAFB', // --color-gray-50
+      paper: '#FFFFFF',
+    },
+    grey: {
+      50: '#F9FAFB',
+      100: '#F3F4F6',
+      200: '#E5E7EB',
+      300: '#D1D5DB',
+      400: '#9CA3AF',
+      500: '#6B7280',
+      600: '#4B5563',
+      700: '#374151',
+      800: '#1F2937',
+      900: '#111827',
     },
   },
   typography: {
     fontFamily: [
+      'Inter',
+      'system-ui',
+      '-apple-system',
+      'BlinkMacSystemFont',
+      '"Segoe UI"',
       'Roboto',
       '"Helvetica Neue"',
       'Arial',
       'sans-serif',
     ].join(','),
     h1: {
-      fontSize: '2.5rem',
-      fontWeight: 500,
+      fontFamily: 'Poppins, system-ui, sans-serif',
+      fontSize: '3rem', // 48px, --text-5xl
+      fontWeight: 600, // --font-semibold
+      lineHeight: 1.25, // --leading-tight
       '@media (max-width:768px)': {
-        fontSize: '2rem',
-      },
-      '@media (max-width:576px)': {
-        fontSize: '1.75rem',
+        fontSize: '2.5rem', // 40px on mobile/tablet
       },
     },
     h2: {
-      fontSize: '2rem',
-      fontWeight: 500,
+      fontFamily: 'Poppins, system-ui, sans-serif',
+      fontSize: '2.25rem', // 36px, --text-4xl
+      fontWeight: 600, // --font-semibold
+      lineHeight: 1.25, // --leading-tight
       '@media (max-width:768px)': {
-        fontSize: '1.75rem',
-      },
-      '@media (max-width:576px)': {
-        fontSize: '1.5rem',
+        fontSize: '2rem', // 32px on mobile/tablet
       },
     },
     h3: {
-      fontSize: '1.75rem',
-      fontWeight: 500,
+      fontFamily: 'Poppins, system-ui, sans-serif',
+      fontSize: '1.875rem', // 30px, --text-3xl
+      fontWeight: 600, // --font-semibold
+      lineHeight: 1.375, // --leading-snug
       '@media (max-width:768px)': {
-        fontSize: '1.5rem',
-      },
-      '@media (max-width:576px)': {
-        fontSize: '1.25rem',
+        fontSize: '1.75rem', // 28px on mobile/tablet
       },
     },
     h4: {
-      fontSize: '1.5rem',
-      fontWeight: 500,
+      fontFamily: 'Poppins, system-ui, sans-serif',
+      fontSize: '1.5rem', // 24px, --text-2xl
+      fontWeight: 600, // --font-semibold
+      lineHeight: 1.375, // --leading-snug
       '@media (max-width:768px)': {
-        fontSize: '1.25rem',
-      },
-      '@media (max-width:576px)': {
-        fontSize: '1.1rem',
+        fontSize: '1.375rem', // 22px on mobile/tablet
       },
     },
     h5: {

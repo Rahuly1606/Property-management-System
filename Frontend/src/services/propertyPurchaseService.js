@@ -1,38 +1,39 @@
 import axiosInstance from './axiosConfig';
 
-// Use the correct API URL with the backend base URL
+// Note: axiosInstance already includes /api as the base URL
+// We don't need to include '/api' in our API_URL
 const API_URL = '/property-purchase-requests';
 
 export const propertyPurchaseService = {
     createPurchaseRequest: async (propertyId) => {
         try {
             console.log(`Sending POST request to ${API_URL}/${propertyId}`);
-            
+
             // Check authentication before making request
             const token = localStorage.getItem('token');
             const userRole = localStorage.getItem('userRole');
-            
+
             if (!token) {
                 throw new Error('Authentication token is missing. Please log in again.');
             }
-            
+
             if (userRole !== 'TENANT') {
                 throw new Error('Only tenants can purchase properties.');
             }
-            
+
             const response = await axiosInstance.post(`${API_URL}/${propertyId}`);
             console.log('Purchase request created successfully:', response.data);
             return response.data;
         } catch (error) {
             console.error('Error creating purchase request:', error);
-            
+
             // Add more detailed error logging
             if (error.response) {
                 console.error('Response error data:', error.response.data);
                 console.error('Response status:', error.response.status);
                 console.error('Response headers:', error.response.headers);
             }
-            
+
             throw error;
         }
     },
@@ -66,19 +67,19 @@ export const propertyPurchaseService = {
         try {
             console.log(`Processing payment for request ID: ${requestId}`);
             console.log('Payment details:', { razorpayPaymentId, razorpaySignature });
-            
+
             const paymentData = {
                 razorpayPaymentId,
                 razorpaySignature
             };
-            
+
             // Include property details if provided
             if (propertyDetails) {
                 paymentData.propertyDetails = propertyDetails;
             }
-            
+
             const response = await axiosInstance.post(`${API_URL}/${requestId}/process-payment`, paymentData);
-            
+
             console.log('Payment processed:', response.data);
             return response.data;
         } catch (error) {
@@ -153,11 +154,24 @@ export const propertyPurchaseService = {
 
     getSoldProperties: async () => {
         try {
+            // Use the properly formatted endpoint
             const response = await axiosInstance.get(`${API_URL}/landlord/sold-properties`);
-            return response.data;
+
+            // Check if the response data is in the expected format
+            if (response.data) {
+                if (Array.isArray(response.data)) {
+                    return response.data;
+                } else if (typeof response.data === 'object' && !Array.isArray(response.data)) {
+                    console.warn('Sold properties response is an object, not an array:', response.data);
+                    return Object.values(response.data); // Try to convert object to array
+                }
+            }
+
+            console.warn('Defaulting to empty array for sold properties response');
+            return [];
         } catch (error) {
             console.error('Error getting sold properties:', error);
-            throw error;
+            return []; // Return empty array instead of throwing
         }
     },
 
