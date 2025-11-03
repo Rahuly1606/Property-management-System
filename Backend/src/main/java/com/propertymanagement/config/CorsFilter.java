@@ -18,8 +18,15 @@ public class CorsFilter implements Filter {
             throws IOException, ServletException {
         HttpServletResponse response = (HttpServletResponse) res;
         HttpServletRequest request = (HttpServletRequest) req;
-        
-        response.setHeader("Access-Control-Allow-Origin", "http://localhost:5173");
+
+        String origin = request.getHeader("Origin");
+        // Allow requests from frontend ports
+        if (origin != null && (origin.equals("http://localhost:8080") ||
+                origin.equals("http://localhost:8081") ||
+                origin.equals("http://localhost:5173") ||
+                origin.equals("http://localhost:3000"))) {
+            response.setHeader("Access-Control-Allow-Origin", origin);
+        }
         response.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
         response.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type, X-Requested-With");
         response.setHeader("Access-Control-Allow-Credentials", "true");
@@ -41,4 +48,4 @@ public class CorsFilter implements Filter {
     public void destroy() {
         // Not needed for this implementation
     }
-} 
+}

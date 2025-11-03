@@ -3,32 +3,34 @@ package com.propertymanagement.controller;
 import com.propertymanagement.controller.base.impl.BaseControllerImpl;
 import com.propertymanagement.dto.UserDTO;
 import com.propertymanagement.dto.UserProfileUpdateDTO;
+import com.propertymanagement.dto.ChangePasswordDTO;
 import com.propertymanagement.mapper.UserMapper;
 import com.propertymanagement.model.User;
 import com.propertymanagement.service.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/users")
 public class UserController extends BaseControllerImpl<User, UserDTO, UserService, UserMapper> {
-    
+
     private final UserService userService;
     private static final Logger logger = LoggerFactory.getLogger(UserController.class);
-    
+
     public UserController(UserService userService, UserMapper userMapper) {
         super(userService, userMapper);
         this.userService = userService;
     }
-    
+
     @GetMapping("/me")
     @PreAuthorize("isAuthenticated()")
     public UserDTO getCurrentUser() {
         return mapper.toDTO(userService.getCurrentUser());
     }
-    
+
     @PutMapping("/{id}/profile")
     @PreAuthorize("isAuthenticated()")
     public UserDTO updateProfile(
@@ -38,38 +40,40 @@ public class UserController extends BaseControllerImpl<User, UserDTO, UserServic
             @RequestParam(required = false) String phoneNumber,
             @RequestParam(required = false) String profileImage,
             @RequestParam(required = false) String address) {
-        
+
         logger.debug("Updating profile via PUT for user ID: {}", id);
         logger.debug("Profile data - firstName: {}, lastName: {}, phoneNumber: {}, address: {}, profileImage: {}",
-                firstName, lastName, phoneNumber, address, 
+                firstName, lastName, phoneNumber, address,
                 profileImage != null ? (profileImage.length() > 100 ? "Base64 image data" : profileImage) : "null");
-        
+
         return mapper.toDTO(userService.updateUserProfile(id, firstName, lastName, phoneNumber, profileImage, address));
     }
-    
+
     @PostMapping("/{id}/profile")
     @PreAuthorize("isAuthenticated()")
     public UserDTO updateProfileJson(
             @PathVariable Long id,
             @RequestBody UserProfileUpdateDTO profileData) {
-        
+
         logger.debug("Updating profile via POST for user ID: {}", id);
-        logger.debug("Profile data from JSON - firstName: {}, lastName: {}, phoneNumber: {}, address: {}, profileImage: {}",
-                profileData.getFirstName(), profileData.getLastName(), 
+        logger.debug(
+                "Profile data from JSON - firstName: {}, lastName: {}, phoneNumber: {}, address: {}, profileImage: {}",
+                profileData.getFirstName(), profileData.getLastName(),
                 profileData.getPhoneNumber(), profileData.getAddress(),
-                profileData.getProfileImage() != null ? 
-                    (profileData.getProfileImage().length() > 100 ? "Base64 image data present" : profileData.getProfileImage()) 
-                    : "null");
-        
+                profileData.getProfileImage() != null
+                        ? (profileData.getProfileImage().length() > 100 ? "Base64 image data present"
+                                : profileData.getProfileImage())
+                        : "null");
+
         return mapper.toDTO(userService.updateUserProfile(
-                id, 
-                profileData.getFirstName(), 
-                profileData.getLastName(), 
+                id,
+                profileData.getFirstName(),
+                profileData.getLastName(),
                 profileData.getPhoneNumber(),
                 profileData.getProfileImage(),
                 profileData.getAddress()));
     }
-    
+
     @PutMapping("/{id}/password")
     @PreAuthorize("isAuthenticated()")
     public UserDTO changePassword(
@@ -78,10 +82,31 @@ public class UserController extends BaseControllerImpl<User, UserDTO, UserServic
             @RequestParam String newPassword) {
         return mapper.toDTO(userService.changeUserPassword(id, currentPassword, newPassword));
     }
-    
+
+    @PutMapping("/{id}/change-password")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<UserDTO> changePasswordJson(
+            @PathVariable Long id,
+            @RequestBody ChangePasswordDTO passwordDTO) {
+        logger.debug("Changing password for user ID: {}", id);
+
+        // Verify user can only change their own password
+        User currentUser = userService.getCurrentUser();
+        if (!currentUser.getId().equals(id)) {
+            return ResponseEntity.status(403).build();
+        }
+
+        User updatedUser = userService.changeUserPassword(
+                id,
+                passwordDTO.getCurrentPassword(),
+                passwordDTO.getNewPassword());
+
+        return ResponseEntity.ok(mapper.toDTO(updatedUser));
+    }
+
     @PutMapping("/{id}/status")
     @PreAuthorize("hasRole('ADMIN')")
     public UserDTO toggleUserStatus(@PathVariable Long id) {
         return mapper.toDTO(userService.toggleUserStatus(id));
     }
-} 
+}
