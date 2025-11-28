@@ -36,24 +36,47 @@ services:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql-db:3306/pmsbackend
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: Rahul@1606
+      SERVER_PORT: 8082
+      CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME:-demo}
+      CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY:-}
+      CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET:-}
+      RAZORPAY_KEY_ID: ${RAZORPAY_KEY_ID:-}
+      RAZORPAY_KEY_SECRET: ${RAZORPAY_KEY_SECRET:-}
     ports:
       - "8082:8082"
+    volumes:
+      - backend-uploads:/app/uploads
     networks:
       - pms-network
+    healthcheck:
+      test: ["CMD", "sh", "-c", "curl -f http://localhost:8082/ || exit 0"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
 
   # Frontend Service
   frontend:
     build:
-      context: ./Frontend
+      context: ./frontend
       dockerfile: Dockerfile
     container_name: pms-frontend
     restart: unless-stopped
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
+    environment:
+      VITE_API_URL: http://localhost:8082
     ports:
       - "80:80"
     networks:
       - pms-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
 
 networks:
   pms-network:
@@ -61,3 +84,4 @@ networks:
 
 volumes:
   mysql-data:
+  backend-uploads:

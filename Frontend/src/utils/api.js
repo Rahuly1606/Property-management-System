@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-// Set up base URL for API requests
-const API_URL = 'http://localhost:8080/api';
+// Set up base URL for API requests - use environment variable or default to /api for Docker
+const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 // Create axios instance with default config
 const api = axios.create({
@@ -30,7 +30,7 @@ api.interceptors.response.use(
   async (error) => {
     // Log the error for debugging
     console.error("API Error:", error.response?.status, error.response?.data || error.message);
-    
+
     // Handle authentication errors
     if (error.response && error.response.status === 401) {
       // Clear token and redirect to login if unauthorized
@@ -39,7 +39,7 @@ api.interceptors.response.use(
       localStorage.removeItem('user');
       window.location.href = '/login';
     }
-    
+
     return Promise.reject(error);
   }
 );

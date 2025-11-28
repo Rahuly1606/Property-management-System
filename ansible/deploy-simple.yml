@@ -1,0 +1,68 @@
+---
+# Simplified Ansible Playbook for Local Deployment
+- name: Deploy Property Management System (Local)
+  hosts: production
+  connection: local
+  gather_facts: yes
+  
+  tasks:
+    - name: Check Docker is installed
+      command: docker --version
+      register: docker_check
+      changed_when: false
+      become: no
+      
+    - name: Display Docker version
+      debug:
+        msg: "{{ docker_check.stdout }}"
+    
+    - name: Stop existing containers
+      shell: |
+        cd /mnt/c/Users/alexr/PROJECTS/PMS
+        sudo docker compose down 2>&1 || echo "No containers to stop"
+      register: docker_down
+      changed_when: "'Stopping' in docker_down.stdout or 'Removing' in docker_down.stdout"
+      become: no
+      
+    - name: Display stop output
+      debug:
+        msg: "{{ docker_down.stdout_lines }}"
+      
+    - name: Build and start containers
+      shell: |
+        cd /mnt/c/Users/alexr/PROJECTS/PMS
+        echo "{{ ansible_become_password }}" | sudo -S docker compose up -d --build 2>&1
+      register: docker_up
+      no_log: false
+      become: no
+      args:
+        executable: /bin/bash
+      timeout: 600
+      
+    - name: Display build output
+      debug:
+        msg: "{{ docker_up.stdout_lines }}"
+      
+    - name: Wait for containers to stabilize
+      pause:
+        seconds: 30
+        
+    - name: Check container status
+      shell: |
+        cd /mnt/c/Users/alexr/PROJECTS/PMS
+        echo "{{ ansible_become_password }}" | sudo -S docker compose ps
+      register: container_status
+      become: no
+      
+    - name: Display container status
+      debug:
+        msg: "{{ container_status.stdout_lines }}"
+        
+    - name: Display success message
+      debug:
+        msg:
+          - "==================================================="
+          - "Deployment Complete!"
+          - "Frontend: http://localhost"
+          - "Backend: http://localhost:8082"
+          - "==================================================="

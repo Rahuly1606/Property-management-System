@@ -68,6 +68,7 @@ public class AppSecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/", "/health", "/api/health").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/public/**").permitAll()
                         .requestMatchers("/api/properties/**").permitAll()
@@ -97,8 +98,14 @@ public class AppSecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration
-                .setAllowedOrigins(List.of("http://localhost:8080", "http://localhost:8081", "http://localhost:5173",
-                        "http://localhost:3000"));
+                .setAllowedOrigins(List.of(
+                        "http://localhost:8080",
+                        "http://localhost:8081",
+                        "http://localhost:5173",
+                        "http://localhost:3000",
+                        "http://localhost",
+                        "http://pms-frontend",
+                        "http://frontend"));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "X-Auth-Token"));
         configuration.setExposedHeaders(List.of("X-Auth-Token"));

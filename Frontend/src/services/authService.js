@@ -1,6 +1,7 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:8082/api';
+// Use environment variable or default to /api for Docker (proxied by Nginx)
+const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 // Create axios instance with credentials
 const axiosInstance = axios.create({

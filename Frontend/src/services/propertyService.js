@@ -1,7 +1,8 @@
 import { axiosInstance } from './authService';
 import authHeader from './authHeader';
 
-const API_URL = 'http://localhost:8082/api';
+// Use environment variable or default to /api for Docker (proxied by Nginx)
+const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 // Response interceptor to handle errors (additional to the ones in authService)
 axiosInstance.interceptors.response.use(
