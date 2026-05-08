@@ -36,13 +36,13 @@ spec:
             configMapKeyRef:
               name: pms-config
               key: SERVER_PORT
-        - name: SPRING_DATASOURCE_URL
-          value: "jdbc:mysql://mysql:3306/$(MYSQL_DATABASE)"
         - name: MYSQL_DATABASE
           valueFrom:
             configMapKeyRef:
               name: pms-config
               key: MYSQL_DATABASE
+        - name: SPRING_DATASOURCE_URL
+          value: "jdbc:mysql://mysql:3306/pmsbackend"
         - name: SPRING_DATASOURCE_USERNAME
           value: "root"
         - name: SPRING_DATASOURCE_PASSWORD
@@ -100,7 +100,7 @@ spec:
             cpu: "1000m"
         livenessProbe:
           httpGet:
-            path: /
+            path: /api/images/health
             port: 8082
           initialDelaySeconds: 90
           periodSeconds: 30
@@ -108,7 +108,7 @@ spec:
           failureThreshold: 3
         readinessProbe:
           httpGet:
-            path: /
+            path: /api/images/health
             port: 8082
           initialDelaySeconds: 60
           periodSeconds: 10

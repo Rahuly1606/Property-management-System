@@ -74,8 +74,8 @@ function Update-DockerUsername {
     if ($Username -and $Username -ne "YOUR_DOCKERHUB_USERNAME") {
         Write-Info "Updating Docker image references with username: $Username"
         
-        $backendFile = "kubernetes\backend-deployment.yaml"
-        $frontendFile = "kubernetes\frontend-deployment.yaml"
+        $backendFile = "backend-deployment.yaml"
+        $frontendFile = "frontend-deployment.yaml"
         
         (Get-Content $backendFile) -replace 'YOUR_DOCKERHUB_USERNAME', $Username | Set-Content $backendFile
         (Get-Content $frontendFile) -replace 'YOUR_DOCKERHUB_USERNAME', $Username | Set-Content $frontendFile
@@ -90,19 +90,19 @@ function Deploy-Application {
     
     # Create namespace
     Write-Info "Creating namespace: $Namespace"
-    kubectl apply -f kubernetes\namespace.yaml
+    kubectl apply -f namespace.yaml
     
     # Create ConfigMap and Secrets
     Write-Info "Creating ConfigMap and Secrets"
-    kubectl apply -f kubernetes\configmap.yaml
+    kubectl apply -f configmap.yaml
     
     # Create Persistent Volumes
     Write-Info "Creating Persistent Volume Claims"
-    kubectl apply -f kubernetes\persistent-volumes.yaml
+    kubectl apply -f persistent-volumes.yaml
     
     # Deploy MySQL
     Write-Info "Deploying MySQL database"
-    kubectl apply -f kubernetes\mysql-deployment.yaml
+    kubectl apply -f mysql-deployment.yaml
     
     # Wait for MySQL
     Write-Info "Waiting for MySQL to be ready (this may take 1-2 minutes)..."
@@ -110,7 +110,7 @@ function Deploy-Application {
     
     # Deploy Backend
     Write-Info "Deploying Backend application"
-    kubectl apply -f kubernetes\backend-deployment.yaml
+    kubectl apply -f backend-deployment.yaml
     
     # Wait for Backend
     Write-Info "Waiting for Backend to be ready (this may take 1-2 minutes)..."
@@ -118,7 +118,7 @@ function Deploy-Application {
     
     # Deploy Frontend
     Write-Info "Deploying Frontend application"
-    kubectl apply -f kubernetes\frontend-deployment.yaml
+    kubectl apply -f frontend-deployment.yaml
     
     # Wait for Frontend
     Write-Info "Waiting for Frontend to be ready..."

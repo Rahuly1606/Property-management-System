@@ -18,8 +18,9 @@ type: Opaque
 stringData:
   MYSQL_ROOT_PASSWORD: "Rahul@1606"  # Change this in production!
   JWT_SECRET: "your_jwt_secret_key_minimum_32_characters_long"
-  CLOUDINARY_CLOUD_NAME: ""
-  CLOUDINARY_API_KEY: ""
-  CLOUDINARY_API_SECRET: ""
-  RAZORPAY_KEY_ID: ""
-  RAZORPAY_KEY_SECRET: ""
+  RAZORPAY_KEY_ID: "rzp_test_RkpquIoUsbb6em"
+  RAZORPAY_KEY_SECRET: "YMVXpJ0WmSbKH5mUKO9rCCO4"
+  CLOUDINARY_CLOUD_NAME: "dt8xx5yyr"
+  CLOUDINARY_API_KEY: "338782571496263"
+  CLOUDINARY_API_SECRET: "QRaGSP5Ki02u4WV_nWrTe79QTzE"
+

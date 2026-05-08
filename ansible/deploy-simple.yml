@@ -28,7 +28,7 @@
       debug:
         msg: "{{ docker_down.stdout_lines }}"
       
-    - name: Build and start containers
+    - name: Build and start containers9
       shell: |
         cd /mnt/c/Users/alexr/PROJECTS/PMS
         echo "{{ ansible_become_password }}" | sudo -S docker compose up -d --build 2>&1
@@ -63,6 +63,7 @@
         msg:
           - "==================================================="
           - "Deployment Complete!"
-          - "Frontend: http://localhost"
+          - "Frontend: http://localhost:3000"
           - "Backend: http://localhost:8082"
+          - "Database: localhost:3307"
           - "==================================================="

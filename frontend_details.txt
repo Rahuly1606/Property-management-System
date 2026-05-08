@@ -1,0 +1,102 @@
+PROPERTY MANAGEMENT SYSTEM - FRONTEND SUMMARY
+
+PROJECT INFO
+React 18.2.0 SPA | Vite 5.1.0 | Material-UI 7.1.0 | Tailwind CSS 4.1.1
+JWT Authentication | Razorpay Payments | Cloudinary Images | Role-Based Access (Admin/Landlord/Tenant)
+
+API BASE URL
+Development: http://localhost:8082 | Docker: /api (Nginx proxy) | Env: VITE_API_URL
+
+KEY ENDPOINTS (78 Total)
+AUTH: /api/auth/login, /api/auth/register, /api/auth/logout, /api/auth/refresh-token
+USER: /api/users/me, /api/users/{id}/profile, /api/users/{id}/change-password
+PROPERTIES: /api/properties/available, /api/properties/landlord, /api/properties/{id}, /api/properties/create, /api/properties/{id}/images, /api/images/upload
+LEASES: /api/leases, /api/landlord/leases, /api/tenant/leases, /api/leases/{id}/status, /api/leases/{id}/renew, /api/leases/{id}/terminate
+PAYMENTS: /api/tenant/payments, /api/landlord/payments, /api/tenant/payments/razorpay/create-order, /api/tenant/payments/razorpay/verify, /api/payments/{id}/receipt
+MAINTENANCE: /api/tenant/maintenance-requests, /api/landlord/maintenance-requests, /api/maintenance-requests/{id}/status
+PURCHASE: /api/property-purchase-requests/{propertyId}, /api/property-purchase-requests/{id}/process-payment, /api/property-purchase-requests/tenant/purchased-properties
+
+MAIN ROUTES
+Public: /, /properties, /properties/:id, /login, /register
+Admin: /admin/dashboard, /admin/users, /admin/properties
+Landlord: /landlord/dashboard, /landlord/properties, /landlord/leases, /landlord/payments, /landlord/maintenance, /landlord/sold-properties
+Tenant: /tenant/dashboard, /tenant/browse-properties, /tenant/lease, /tenant/payments, /tenant/maintenance, /tenant/purchased-properties
+Shared: /profile, /messages, /purchase-requests
+
+SERVICES (src/services/)
+authService.js - login, register, logout, getUserProfile, updateUserProfile, changePassword
+propertyService.js - getAllAvailableProperties, getMyProperties, createProperty, updateProperty, uploadPropertyImages
+leaseService.js - getLandlordLeases, getTenantLeases, createLease, updateLeaseStatus, terminateLease, renewLease
+paymentService.js - makePayment, createRazorpayOrder, verifyRazorpayPayment, getTenantPayments, getLandlordPayments
+maintenanceService.js - createMaintenanceRequest, getLandlordMaintenanceRequests, getTenantMaintenanceRequests, updateMaintenanceRequestStatus
+propertyPurchaseService.js - createPurchaseRequest, processPayment, getPurchasedProperties, getSoldProperties
+axiosConfig.js - Axios instance with auto-token injection, refresh on 401
+
+CONTEXTS & HOOKS
+AuthContext (src/contexts/AuthContext.jsx) - currentUser, userRole, login, logout, updateUserProfile, isLandlord, isTenant, isAdmin
+useAuth hook (src/hooks/useAuth.js) - Access authentication context
+
+KEY COMPONENTS (src/components/)
+Auth: Login, Register, ProtectedRoute
+Property: PropertyForm, PropertyDetails, BuyPropertyButton, LeaseButton, PurchaseRequestList, RazorpayPayment
+Lease: LeaseForm, LeaseDocumentViewer
+Payment: PaymentForm, MakePaymentForm, PaymentHistory, PaymentOverview, Invoice, RazorpayLeasePayment
+Maintenance: MaintenanceRequestForm
+Messaging: Messenger
+Profile: ProfileEdit
+Common: Layout, Navbar, Button, Card, Modal, Loading, SkeletonLoader, Toast, FormComponents
+
+PAGES (src/pages/)
+Public: HomePage, PropertyListing, PropertyDetail, NotFound, Unauthorized
+Auth: Login, Register
+Admin: Dashboard
+Landlord: Dashboard, ManageProperties, PropertyForm, SoldProperties, ManageLeases, LeaseDetails, ManageMaintenance
+Tenant: Dashboard, BrowseProperties, PurchasedProperties, LeaseProperties, LeaseDetails, TenantMaintenance
+User: Profile
+Shared: PropertyDetails, PurchaseRequestsPage
+
+KEY FEATURES
+✓ JWT authentication with auto-refresh | ✓ Role-based access (Admin/Landlord/Tenant)
+✓ Property CRUD with multi-image upload | ✓ Cloudinary image hosting | ✓ Image compression
+✓ Lease management (create, renew, terminate) | ✓ Lease documents upload/download
+✓ Razorpay payment integration | ✓ Payment history & receipts | ✓ Invoice generation
+✓ Maintenance requests with images | ✓ Status tracking | ✓ Priority levels
+✓ Property purchase system | ✓ Purchase payment processing
+✓ Real-time messaging | ✓ Toast notifications | ✓ In-app notifications
+✓ Responsive design (mobile/tablet/desktop) | ✓ Material-UI + Tailwind CSS
+✓ Form validation | ✓ Search & filters | ✓ Pagination | ✓ Loading skeletons
+
+USER ROLES & PERMISSIONS
+Admin: All users/properties/leases/payments/maintenance, system settings, reports
+Landlord: Own properties CRUD, manage leases, receive payments, handle maintenance, approve purchases
+Tenant: Browse properties, lease/purchase requests, make payments, submit maintenance, view history
+
+DATA MODELS
+User: {id, email, firstName, lastName, role, phoneNumber, address, profileImage}
+Property: {id, title, description, address, propertyType, bedrooms, bathrooms, monthlyRent, securityDeposit, images[], amenities[], landlord}
+Lease: {id, property, tenant, startDate, endDate, monthlyRent, status, documents[]}
+Payment: {id, lease, amount, paymentDate, paymentMethod, status, razorpayPaymentId, receiptUrl}
+MaintenanceRequest: {id, property, tenant, description, priority, status, images[], comments[]}
+PurchaseRequest: {id, property, tenant, status, paymentAmount, razorpayPaymentId}
+
+DEVELOPMENT SETUP
+1. npm install
+2. Create .env.development with VITE_API_URL=http://localhost:8082
+3. npm run dev (http://localhost:5173)
+Build: npm run build (output: dist/)
+Docker: docker build -t pms-frontend . && docker run -p 80:80 pms-frontend
+
+CONFIGURATION FILES
+package.json - Dependencies, scripts
+vite.config.js - Vite config
+tailwind.config.js - Tailwind CSS
+nginx.conf - Nginx SPA routing & API proxy
+Dockerfile - Multi-stage build (Node + Nginx)
+
+TECH STACK
+React 18.2 | React Router 6.22 | Axios 1.6 | Material-UI 7.1 | Tailwind 4.1 | Framer Motion 12.10 | Notistack 3.0 | React Razorpay 3.0 | Date-fns 4.1 | Firebase 11.6
+
+SECURITY
+JWT Bearer tokens in localStorage | Automatic token refresh | HTTPS recommended | Input validation | XSS protection | CORS configured
+
+Last Updated: February 17, 2026 | Version: 0.1.0
